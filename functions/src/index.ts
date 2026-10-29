@@ -286,7 +286,7 @@ async function sendBrevoEmail(recipient: string, subject: string, pdf: Buffer, f
       sender: { email: process.env.BREVO_SENDER_EMAIL || "billing-test@yourplatform.com", name: process.env.BREVO_SENDER_NAME || "Books" },
       to: [{ email: recipient }],
       subject,
-      htmlContent: `<p>Thank you. Your paid invoice is attached.</p>${loyaltySummary ? `<p>Hotel loyalty points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.</p>` : ""}`,
+      htmlContent: `<p>Thank you. Your paid invoice is attached.</p>${loyaltySummary ? `<p>Loyalty points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.</p>` : ""}`,
       attachment: [{ name: fileName.split("/").pop(), content: pdf.toString("base64") }],
     }),
   });
