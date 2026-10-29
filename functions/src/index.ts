@@ -214,16 +214,16 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (contact.email) document.fontSize(10).text(contact.email);
   if (contact.tax_id) document.fontSize(10).text(`Tax ID: ${contact.tax_id}`);
   if (invoice.buyer_tax_id) document.fontSize(10).text(`Buyer TIN / BRN / NIN: ${invoice.buyer_tax_id}`);
-  if (invoice.notes) document.fontSize(10).text(invoice.notes);
+  if (invoice.notes) document.fontSize(10).text(invoice.notes.replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/i, ""));
   document.moveDown();
   document.fontSize(11).text("Description").text("Amount", { align: "right" });
   for (const line of lines || []) {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
-  document.text(`Taxable accommodation and services: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
+  document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
   document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
-  if (Number(invoice.other_charges) > 0) document.text(`Local Hotel Tax and other charges: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
+  if (Number(invoice.other_charges) > 0) document.text(`Other charges (tax, tips and fees): ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
   if (loyaltySummary) {
     document.moveDown();
