@@ -183,7 +183,7 @@ function isValidEmail(value: string | null | undefined): value is string {
 
 async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   const client = supabase();
-  const { data: invoice, error: invoiceError } = await client.from("books_invoices").select("id,invoice_number,issue_date,due_date,currency_code,subtotal,tax_amount,other_charges,total_due,organization_id,contact_id,receipt_storage_key,notes,buyer_tax_id,tax_rate_percentage").eq("id", invoiceId).single();
+  const { data: invoice, error: invoiceError } = await client.from("books_invoices").select("id,invoice_number,issue_date,due_date,currency_code,subtotal,tax_amount,other_charges,total_due,organization_id,contact_id,receipt_storage_key,notes,buyer_tax_id").eq("id", invoiceId).single();
   if (invoiceError || !invoice) throw invoiceError || new Error("Invoice not found");
   if (!invoice.contact_id) throw new Error("Paid invoice has no customer contact");
   const { data: loyaltyData, error: loyaltyError } = await client.rpc("get_paid_invoice_loyalty_receipt", { target_invoice_id: invoice.id });
@@ -204,7 +204,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
     : null;
   if (menuCharges?.error) throw menuCharges.error;
-  let menuVat: { rate: number; amount: number } | null = null;
+  let vatAmount: number | null = null;
   if (isVatInclusiveSale) {
     const { data: vatRate, error: vatRateError } = await client.rpc("books_confirmed_invoice_vat_rate", {
       target_organization_id: invoice.organization_id,
@@ -219,7 +219,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
       const factor = 10 ** Number(minorUnits);
       const gross = Number(invoice.subtotal) + Number(invoice.tax_amount);
       const net = Math.round((gross / (1 + Number(vatRate) / 100)) * factor) / factor;
-      menuVat = { rate: Number(vatRate), amount: Math.round((gross - net) * factor) / factor };
+      vatAmount = Math.round((gross - net) * factor) / factor;
     }
   }
 
@@ -246,21 +246,20 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
-  if (isVatInclusiveSale) {
+  if (isVatInclusiveSale && vatAmount !== null) {
+    document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount) - vatAmount} ${invoice.currency_code}`, { align: "right" });
+    document.text(`VAT: ${vatAmount} ${invoice.currency_code}`, { align: "right" });
+  } else if (isVatInclusiveSale) {
     document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount)} ${invoice.currency_code}`, { align: "right" });
-    if (menuVat) {
-      document.text(`VAT (${menuVat.rate}%): ${menuVat.amount} ${invoice.currency_code}`, { align: "right" });
-    }
   } else {
     document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
-    const vatLabel = invoice.tax_rate_percentage > 0 ? `VAT (${invoice.tax_rate_percentage}%)` : "VAT";
-    document.text(`${vatLabel}: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
+    document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
   }
   if (menuCharges?.data) {
     if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
     if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
   } else if (Number(invoice.other_charges) > 0) {
-    const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees and other charges";
+    const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Other charges";
     document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
   }
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
