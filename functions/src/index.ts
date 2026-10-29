@@ -197,6 +197,10 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (organizationError) throw organizationError;
   if (contactError) throw contactError;
   if (linesError) throw linesError;
+  const menuCharges = invoice.invoice_number.startsWith("MENU-")
+    ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
+    : null;
+  if (menuCharges?.error) throw menuCharges.error;
 
   const document = new PDFDocument({ margin: 50 });
   const chunks: Buffer[] = [];
@@ -223,7 +227,12 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   document.moveDown();
   document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
   document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
-  if (Number(invoice.other_charges) > 0) document.text(`Other charges (tax, tips and fees): ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
+  if (menuCharges?.data) {
+    if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
+    if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
+  } else if (Number(invoice.other_charges) > 0) {
+    document.text(`Local hotel tax: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
+  }
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
   if (loyaltySummary) {
     document.moveDown();
