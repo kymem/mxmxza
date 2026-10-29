@@ -259,7 +259,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
     if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
   } else if (Number(invoice.other_charges) > 0) {
-    const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Other charges";
+    const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees";
     document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
   }
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
