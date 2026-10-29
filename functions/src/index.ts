@@ -258,7 +258,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
   if (loyaltySummary) {
     document.moveDown();
-    document.fontSize(11).text("Hotel loyalty", { underline: true });
+    document.fontSize(11).text("Loyalty points", { underline: true });
     const loyaltyText = loyaltySummary.status === "posted"
       ? `Points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.`
       : loyaltySummary.status === "excluded"
