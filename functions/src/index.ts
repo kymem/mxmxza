@@ -200,6 +200,10 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   const isHotelInvoice = invoice.invoice_number.startsWith("HOTEL-");
   const isVatInclusiveSale = /^(MENU|EVENT)-/.test(invoice.invoice_number);
   const isMenuInvoice = invoice.invoice_number.startsWith("MENU-");
+  const menuCharges = isMenuInvoice
+    ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
+    : null;
+  if (menuCharges?.error) throw menuCharges.error;
   let vatAmount: number | null = null;
   if (isVatInclusiveSale) {
     const { data: vatRate, error: vatRateError } = await client.rpc("books_confirmed_invoice_vat_rate", {
@@ -238,7 +242,8 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (invoice.notes) document.fontSize(10).text(invoice.notes.replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/i, ""));
   document.moveDown();
   document.fontSize(11).text("Description").text("Amount", { align: "right" });
-  for (const line of lines || []) {
+  const menuChargeLines = menuCharges?.data ? ["Service fee", "Tip"] : [];
+  for (const line of (lines || []).filter((line) => !menuChargeLines.includes(line.description))) {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
@@ -251,7 +256,10 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
     document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
   }
-  if (!isMenuInvoice && Number(invoice.other_charges) > 0) {
+  if (menuCharges?.data) {
+    if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
+    if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
+  } else if (!isMenuInvoice && Number(invoice.other_charges) > 0) {
     const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees";
     document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
   }
