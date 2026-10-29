@@ -197,10 +197,29 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (organizationError) throw organizationError;
   if (contactError) throw contactError;
   if (linesError) throw linesError;
-  const menuCharges = invoice.invoice_number.startsWith("MENU-")
+  const isMenuInvoice = invoice.invoice_number.startsWith("MENU-");
+  const menuCharges = isMenuInvoice
     ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
     : null;
   if (menuCharges?.error) throw menuCharges.error;
+  let menuVat: { rate: number; amount: number } | null = null;
+  if (isMenuInvoice) {
+    const { data: vatRate, error: vatRateError } = await client.rpc("books_confirmed_invoice_vat_rate", {
+      target_organization_id: invoice.organization_id,
+      target_date: invoice.issue_date,
+    });
+    if (vatRateError) throw vatRateError;
+    if (vatRate !== null && vatRate !== undefined) {
+      const { data: minorUnits, error: minorUnitsError } = await client.rpc("checkout_currency_minor_units", {
+        target_currency: invoice.currency_code,
+      });
+      if (minorUnitsError) throw minorUnitsError;
+      const factor = 10 ** Number(minorUnits);
+      const gross = Number(invoice.subtotal) + Number(invoice.tax_amount);
+      const net = Math.round((gross / (1 + Number(vatRate) / 100)) * factor) / factor;
+      menuVat = { rate: Number(vatRate), amount: Math.round((gross - net) * factor) / factor };
+    }
+  }
 
   const document = new PDFDocument({ margin: 50 });
   const chunks: Buffer[] = [];
@@ -225,8 +244,16 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
-  document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
-  document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
+  if (isMenuInvoice) {
+    const menuItemsTotal = Number(invoice.subtotal) + Number(invoice.tax_amount);
+    document.text(`Subtotal (VAT inclusive): ${menuItemsTotal} ${invoice.currency_code}`, { align: "right" });
+    if (menuVat) {
+      document.text(`of which VAT (${menuVat.rate}%): ${menuVat.amount} ${invoice.currency_code}`, { align: "right" });
+    }
+  } else {
+    document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
+    document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
+  }
   if (menuCharges?.data) {
     if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
     if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
