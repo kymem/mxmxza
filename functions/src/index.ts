@@ -275,11 +275,9 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   }
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
   if (vatAmount !== null && vatRatePercentage !== null) {
-    const taxableAmount = Number(invoice.subtotal) + Number(invoice.tax_amount) + menuServiceFee - vatAmount;
     document.moveDown();
     document.fontSize(11).text("VAT summary", { underline: true });
-    document.fontSize(10).text(`Amount excl. VAT: ${taxableAmount} ${invoice.currency_code}`);
-    document.text(`VAT at ${vatRatePercentage}%: ${vatAmount} ${invoice.currency_code}`);
+    document.fontSize(10).text(`VAT at ${vatRatePercentage}%: ${vatAmount} ${invoice.currency_code}`);
   }
   if (loyaltySummary) {
     document.moveDown();
