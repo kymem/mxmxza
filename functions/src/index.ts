@@ -181,12 +181,6 @@ function isValidEmail(value: string | null | undefined): value is string {
   return Boolean(value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
 }
 
-function drawInvoiceSeparator(document: InstanceType<typeof PDFDocument>) {
-  document.moveDown(0.3);
-  document.moveTo(50, document.y).lineTo(document.page.width - 50, document.y).stroke();
-  document.moveDown(0.3);
-}
-
 async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   const client = supabase();
   const { data: invoice, error: invoiceError } = await client.from("books_invoices").select("id,invoice_number,issue_date,due_date,currency_code,subtotal,tax_amount,other_charges,total_due,organization_id,contact_id,receipt_storage_key,notes,buyer_tax_id").eq("id", invoiceId).single();
@@ -264,11 +258,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount)} ${invoice.currency_code}`, { align: "right" });
   }
   if (menuCharges?.data) {
-    if (menuTip > 0) {
-      drawInvoiceSeparator(document);
-      document.text(`Tip: ${menuTip} ${invoice.currency_code}`, { align: "right" });
-    }
-    drawInvoiceSeparator(document);
+    if (menuTip > 0) document.text(`Tip: ${menuTip} ${invoice.currency_code}`, { align: "right" });
   } else if (!isMenuInvoice && Number(invoice.other_charges) > 0) {
     const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees";
     document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
