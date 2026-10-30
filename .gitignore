@@ -1,6 +1,5 @@
 .env
 .env.*
 !.env.example
-!functions/.env.speshio
 functions/lib/
 functions/node_modules/
