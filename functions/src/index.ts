@@ -321,7 +321,7 @@ async function updateInvoice(client: ReturnType<typeof supabase>, invoiceId: str
   throw error;
 }
 
-const runtimeSecrets = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_WEBHOOK_SECRET", "B2_ENDPOINT", "B2_REGION", "B2_KEY_ID", "B2_APPLICATION_KEY", "B2_BUCKET_NAME", "B2_PUBLIC_URL", "BREVO_API_KEY", "BREVO_SENDER_EMAIL", "BREVO_SENDER_NAME"];
+const runtimeSecrets = ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_WEBHOOK_SECRET", "B2_KEY_ID", "B2_APPLICATION_KEY", "BREVO_API_KEY"];
 
 export const importBankCSV = onRequest({ region: "us-central1", timeoutSeconds: 540, memory: "1GiB", secrets: runtimeSecrets }, async (request, response) => {
   const { value, raw } = jsonBody(request);
