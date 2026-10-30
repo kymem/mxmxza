@@ -181,6 +181,12 @@ function isValidEmail(value: string | null | undefined): value is string {
   return Boolean(value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
 }
 
+function drawInvoiceSeparator(document: InstanceType<typeof PDFDocument>) {
+  document.moveDown(0.3);
+  document.moveTo(50, document.y).lineTo(document.page.width - 50, document.y).stroke();
+  document.moveDown(0.3);
+}
+
 async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   const client = supabase();
   const { data: invoice, error: invoiceError } = await client.from("books_invoices").select("id,invoice_number,issue_date,due_date,currency_code,subtotal,tax_amount,other_charges,total_due,organization_id,contact_id,receipt_storage_key,notes,buyer_tax_id").eq("id", invoiceId).single();
@@ -204,6 +210,8 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
     : null;
   if (menuCharges?.error) throw menuCharges.error;
+  const menuServiceFee = Number(menuCharges?.data?.service_fee ?? 0);
+  const menuTip = Number(menuCharges?.data?.tip_amount ?? 0);
   let vatAmount: number | null = null;
   if (isVatInclusiveSale) {
     const { data: vatRate, error: vatRateError } = await client.rpc("books_confirmed_invoice_vat_rate", {
@@ -217,7 +225,7 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
       });
       if (minorUnitsError) throw minorUnitsError;
       const factor = 10 ** Number(minorUnits);
-      const gross = Number(invoice.subtotal) + Number(invoice.tax_amount);
+      const gross = Number(invoice.subtotal) + Number(invoice.tax_amount) + menuServiceFee;
       const net = Math.round((gross / (1 + Number(vatRate) / 100)) * factor) / factor;
       vatAmount = Math.round((gross - net) * factor) / factor;
     }
@@ -242,13 +250,13 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (invoice.notes) document.fontSize(10).text(invoice.notes.replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/i, ""));
   document.moveDown();
   document.fontSize(11).text("Description").text("Amount", { align: "right" });
-  const menuChargeLines = menuCharges?.data ? ["Service fee", "Tip"] : [];
-  for (const line of (lines || []).filter((line) => !menuChargeLines.includes(line.description))) {
+  const menuTipLines = menuCharges?.data ? ["Tip"] : [];
+  for (const line of (lines || []).filter((line) => !menuTipLines.includes(line.description))) {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
   if (isVatInclusiveSale && vatAmount !== null) {
-    document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount) - vatAmount} ${invoice.currency_code}`, { align: "right" });
+    document.text(`Amount excl. VAT: ${Number(invoice.subtotal) + Number(invoice.tax_amount) + menuServiceFee - vatAmount} ${invoice.currency_code}`, { align: "right" });
     document.text(`VAT: ${vatAmount} ${invoice.currency_code}`, { align: "right" });
   } else if (isVatInclusiveSale) {
     document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount)} ${invoice.currency_code}`, { align: "right" });
@@ -257,8 +265,11 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
     document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
   }
   if (menuCharges?.data) {
-    if (Number(menuCharges.data.service_fee) > 0) document.text(`Service fee: ${menuCharges.data.service_fee} ${invoice.currency_code}`, { align: "right" });
-    if (Number(menuCharges.data.tip_amount) > 0) document.text(`Tip: ${menuCharges.data.tip_amount} ${invoice.currency_code}`, { align: "right" });
+    if (menuTip > 0) {
+      drawInvoiceSeparator(document);
+      document.text(`Tip: ${menuTip} ${invoice.currency_code}`, { align: "right" });
+    }
+    drawInvoiceSeparator(document);
   } else if (!isMenuInvoice && Number(invoice.other_charges) > 0) {
     const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees";
     document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
