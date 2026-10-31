@@ -564,4 +564,34 @@ BEGIN
 END;
 $$;
 
+alter policy task_reports_insert on public.task_reports
+  with check (
+    provider_id = (
+      select user_profiles.id
+        from public.user_profiles
+       where user_profiles.user_id = auth.uid()
+         and (user_profiles.role)::text in ('service_provider', 'worker')
+    )
+    and (status)::text = 'in_progress'
+  );
+
+alter policy task_reports_update on public.task_reports
+  using (
+    (status)::text <> 'approved'
+    and provider_id = (
+      select user_profiles.id
+        from public.user_profiles
+       where user_profiles.user_id = auth.uid()
+         and (user_profiles.role)::text in ('service_provider', 'worker')
+    )
+  )
+  with check (
+    provider_id = (
+      select user_profiles.id
+        from public.user_profiles
+       where user_profiles.user_id = auth.uid()
+         and (user_profiles.role)::text in ('service_provider', 'worker')
+    )
+  );
+
 commit;
