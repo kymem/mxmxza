@@ -9,7 +9,7 @@ BEGIN
   IF NEW.action = 'accept' THEN
     INSERT INTO public.todo_list (
       task_id,
-      provider_id,
+      worker_id,
       title,
       description,
       priority,
@@ -20,7 +20,7 @@ BEGIN
     )
     SELECT
       t.id,
-      NEW.provider_id,
+      NEW.worker_id,
       t.title,
       t.description,
       t.priority,
@@ -48,7 +48,7 @@ BEGIN
     LEFT JOIN task_attachments ta ON t.id = ta.task_id
     LEFT JOIN attachments a ON ta.attachment_id = a.id
     WHERE t.id = NEW.task_id
-    GROUP BY t.id, NEW.provider_id;
+    GROUP BY t.id, NEW.worker_id;
 
     -- Notify the provider that a todo has been created
     INSERT INTO public.notifications (user_id, task_id, type, message)
@@ -58,7 +58,7 @@ BEGIN
       'todo_created'::character varying,
       'A todo list entry has been created for your accepted task'
     FROM user_profiles up
-    WHERE up.id = NEW.provider_id;
+    WHERE up.id = NEW.worker_id;
   END IF;
   
   RETURN NEW;

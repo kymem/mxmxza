@@ -99,7 +99,7 @@ CREATE TRIGGER update_task_evidence_requirements_updated_at BEFORE UPDATE ON tas
 CREATE TABLE IF NOT EXISTS public.task_reports (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL UNIQUE,
-  provider_id UUID NOT NULL,
+  worker_id UUID NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'in_progress'::VARCHAR,
   description TEXT NOT NULL,
   percentage_complete INTEGER NOT NULL DEFAULT 0,
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS public.task_reports (
   CONSTRAINT task_reports_pkey PRIMARY KEY (id),
   CONSTRAINT task_reports_task_id_fkey FOREIGN KEY (task_id) 
     REFERENCES tasks (id) ON DELETE CASCADE,
-  CONSTRAINT task_reports_provider_id_fkey FOREIGN KEY (provider_id) 
+  CONSTRAINT task_reports_worker_id_fkey FOREIGN KEY (worker_id) 
     REFERENCES user_profiles (id) ON DELETE CASCADE,
   CONSTRAINT task_reports_last_updated_by_fkey FOREIGN KEY (last_updated_by) 
     REFERENCES auth.users (id) ON DELETE CASCADE,
@@ -129,8 +129,8 @@ CREATE TABLE IF NOT EXISTS public.task_reports (
 CREATE INDEX IF NOT EXISTS idx_task_reports_task_id 
   ON public.task_reports USING btree (task_id);
 
-CREATE INDEX IF NOT EXISTS idx_task_reports_provider_id 
-  ON public.task_reports USING btree (provider_id);
+CREATE INDEX IF NOT EXISTS idx_task_reports_worker_id 
+  ON public.task_reports USING btree (worker_id);
 
 CREATE INDEX IF NOT EXISTS idx_task_reports_status 
   ON public.task_reports USING btree (status);
@@ -181,7 +181,7 @@ CREATE TRIGGER update_task_report_checklist_items_updated_at BEFORE UPDATE ON ta
 CREATE TABLE IF NOT EXISTS public.task_evidence_submissions (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL,
-  provider_id UUID NOT NULL,
+  worker_id UUID NOT NULL,
   evidence_type VARCHAR(50) NOT NULL,
   attachment_id UUID NOT NULL,
   description TEXT,
@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.task_evidence_submissions (
   CONSTRAINT task_evidence_submissions_pkey PRIMARY KEY (id),
   CONSTRAINT task_evidence_submissions_task_id_fkey FOREIGN KEY (task_id) 
     REFERENCES tasks (id) ON DELETE CASCADE,
-  CONSTRAINT task_evidence_submissions_provider_id_fkey FOREIGN KEY (provider_id) 
+  CONSTRAINT task_evidence_submissions_worker_id_fkey FOREIGN KEY (worker_id) 
     REFERENCES user_profiles (id) ON DELETE CASCADE,
   CONSTRAINT task_evidence_submissions_attachment_id_fkey FOREIGN KEY (attachment_id) 
     REFERENCES attachments (id) ON DELETE CASCADE,
@@ -213,8 +213,8 @@ CREATE TABLE IF NOT EXISTS public.task_evidence_submissions (
 CREATE INDEX IF NOT EXISTS idx_task_evidence_submissions_task_id 
   ON public.task_evidence_submissions USING btree (task_id);
 
-CREATE INDEX IF NOT EXISTS idx_task_evidence_submissions_provider_id 
-  ON public.task_evidence_submissions USING btree (provider_id);
+CREATE INDEX IF NOT EXISTS idx_task_evidence_submissions_worker_id 
+  ON public.task_evidence_submissions USING btree (worker_id);
 
 CREATE INDEX IF NOT EXISTS idx_task_evidence_submissions_evidence_type 
   ON public.task_evidence_submissions USING btree (evidence_type);
@@ -238,7 +238,7 @@ CREATE TRIGGER update_task_evidence_submissions_updated_at BEFORE UPDATE ON task
 CREATE TABLE IF NOT EXISTS public.task_issues (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL,
-  provider_id UUID NOT NULL,
+  worker_id UUID NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   severity VARCHAR(20) NOT NULL DEFAULT 'medium'::VARCHAR,
@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS public.task_issues (
   CONSTRAINT task_issues_pkey PRIMARY KEY (id),
   CONSTRAINT task_issues_task_id_fkey FOREIGN KEY (task_id) 
     REFERENCES tasks (id) ON DELETE CASCADE,
-  CONSTRAINT task_issues_provider_id_fkey FOREIGN KEY (provider_id) 
+  CONSTRAINT task_issues_worker_id_fkey FOREIGN KEY (worker_id) 
     REFERENCES user_profiles (id) ON DELETE CASCADE,
   CONSTRAINT task_issues_severity_check CHECK (
     severity::text = ANY (ARRAY[
@@ -272,8 +272,8 @@ CREATE TABLE IF NOT EXISTS public.task_issues (
 CREATE INDEX IF NOT EXISTS idx_task_issues_task_id 
   ON public.task_issues USING btree (task_id);
 
-CREATE INDEX IF NOT EXISTS idx_task_issues_provider_id 
-  ON public.task_issues USING btree (provider_id);
+CREATE INDEX IF NOT EXISTS idx_task_issues_worker_id 
+  ON public.task_issues USING btree (worker_id);
 
 CREATE INDEX IF NOT EXISTS idx_task_issues_severity 
   ON public.task_issues USING btree (severity);
@@ -354,7 +354,7 @@ CREATE POLICY task_evidence_requirements_insert
 CREATE POLICY task_reports_view
   ON public.task_reports FOR SELECT
   USING (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM tasks t
       WHERE t.id = task_reports.task_id AND t.created_by = auth.uid()
@@ -364,13 +364,13 @@ CREATE POLICY task_reports_view
 CREATE POLICY task_reports_insert
   ON public.task_reports FOR INSERT
   WITH CHECK (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
   );
 
 CREATE POLICY task_reports_update
   ON public.task_reports FOR UPDATE
   USING (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM tasks t
       WHERE t.id = task_reports.task_id AND t.created_by = auth.uid()
@@ -385,7 +385,7 @@ CREATE POLICY task_report_checklist_items_view
       SELECT 1 FROM task_reports tr
       WHERE tr.id = task_report_checklist_items.report_id
       AND (
-        tr.provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+        tr.worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
         OR EXISTS (
           SELECT 1 FROM tasks t
           WHERE t.id = tr.task_id AND t.created_by = auth.uid()
@@ -400,7 +400,7 @@ CREATE POLICY task_report_checklist_items_insert
     EXISTS (
       SELECT 1 FROM task_reports tr
       WHERE tr.id = report_id
-      AND tr.provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+      AND tr.worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     )
   );
 
@@ -410,7 +410,7 @@ CREATE POLICY task_report_checklist_items_update
     EXISTS (
       SELECT 1 FROM task_reports tr
       WHERE tr.id = task_report_checklist_items.report_id
-      AND tr.provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+      AND tr.worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     )
   );
 
@@ -418,7 +418,7 @@ CREATE POLICY task_report_checklist_items_update
 CREATE POLICY task_evidence_submissions_view
   ON public.task_evidence_submissions FOR SELECT
   USING (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM tasks t
       WHERE t.id = task_evidence_submissions.task_id AND t.created_by = auth.uid()
@@ -428,7 +428,7 @@ CREATE POLICY task_evidence_submissions_view
 CREATE POLICY task_evidence_submissions_insert
   ON public.task_evidence_submissions FOR INSERT
   WITH CHECK (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
   );
 
 CREATE POLICY task_evidence_submissions_update
@@ -444,7 +444,7 @@ CREATE POLICY task_evidence_submissions_update
 CREATE POLICY task_issues_view
   ON public.task_issues FOR SELECT
   USING (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM tasks t
       WHERE t.id = task_issues.task_id AND t.created_by = auth.uid()
@@ -454,7 +454,7 @@ CREATE POLICY task_issues_view
 CREATE POLICY task_issues_insert
   ON public.task_issues FOR INSERT
   WITH CHECK (
-    provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
+    worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid() LIMIT 1)
   );
 
 CREATE POLICY task_issues_update
@@ -475,7 +475,7 @@ CREATE OR REPLACE VIEW public.task_reports_summary AS
 SELECT
   tr.id,
   tr.task_id,
-  tr.provider_id,
+  tr.worker_id,
   tr.status,
   tr.percentage_complete,
   t.title,
@@ -489,7 +489,7 @@ SELECT
   tr.updated_at
 FROM task_reports tr
 JOIN tasks t ON t.id = tr.task_id
-JOIN user_profiles up ON up.id = tr.provider_id;
+JOIN user_profiles up ON up.id = tr.worker_id;
 
 -- View: Flagged tasks (those with open critical/high severity issues)
 CREATE OR REPLACE VIEW public.flagged_tasks AS

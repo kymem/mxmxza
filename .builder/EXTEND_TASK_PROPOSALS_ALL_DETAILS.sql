@@ -44,7 +44,7 @@ BEGIN
   IF NEW.status = 'accepted' AND (OLD.status IS NULL OR OLD.status != 'accepted') THEN
     INSERT INTO public.todo_list (
       task_id,
-      provider_id,
+      worker_id,
       title,
       description,
       priority,
@@ -54,7 +54,7 @@ BEGIN
     )
     SELECT
       t.id,
-      NEW.provider_id,
+      NEW.worker_id,
       t.title,
       t.description,
       t.priority,
@@ -80,7 +80,7 @@ BEGIN
     AND NOT EXISTS (
       -- Prevent duplicate todos for same task+provider
       SELECT 1 FROM todo_list tl
-      WHERE tl.task_id = NEW.task_id AND tl.provider_id = NEW.provider_id
+      WHERE tl.task_id = NEW.task_id AND tl.worker_id = NEW.worker_id
     );
 
     -- Notify provider that proposal was accepted and todo created
@@ -91,7 +91,7 @@ BEGIN
       'proposal_accepted'::character varying,
       'Your proposal has been accepted! Check your todo list for the agreed terms.'
     FROM user_profiles up
-    WHERE up.id = NEW.provider_id;
+    WHERE up.id = NEW.worker_id;
   END IF;
 
   RETURN NEW;
@@ -110,7 +110,7 @@ BEGIN
   IF NEW.action = 'accept' THEN
     INSERT INTO public.todo_list (
       task_id,
-      provider_id,
+      worker_id,
       title,
       description,
       priority,
@@ -120,7 +120,7 @@ BEGIN
     )
     SELECT
       t.id,
-      NEW.provider_id,
+      NEW.worker_id,
       t.title,
       t.description,
       t.priority,
@@ -141,7 +141,7 @@ BEGIN
     AND NOT EXISTS (
       -- Prevent duplicate todos for same task+provider
       SELECT 1 FROM todo_list tl
-      WHERE tl.task_id = NEW.task_id AND tl.provider_id = NEW.provider_id
+      WHERE tl.task_id = NEW.task_id AND tl.worker_id = NEW.worker_id
     );
 
     -- Notify provider that a todo has been created
@@ -152,7 +152,7 @@ BEGIN
       'todo_created'::character varying,
       'A todo list entry has been created for your accepted task'
     FROM user_profiles up
-    WHERE up.id = NEW.provider_id;
+    WHERE up.id = NEW.worker_id;
   END IF;
   
   RETURN NEW;

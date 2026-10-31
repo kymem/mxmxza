@@ -641,10 +641,10 @@ begin
     select exists (
       select 1 from public.task_reports report
       join public.tasks task on task.id = report.task_id
-      join public.user_profiles provider on provider.id = report.provider_id
+      join public.user_profiles provider on provider.id = report.worker_id
       where report.task_id = target_source_id and report.status = 'approved'
         and task.status = 'completed' and provider.user_id = target_user_id
-        and provider.role = 'service_provider'
+        and provider.role = 'worker'
     ) into valid_milestone;
   elsif target_qualification_type = 'manager_listing' then
     select exists (
@@ -666,7 +666,7 @@ begin
 
   select role into profile_role from public.user_profiles where user_id = target_user_id;
   if target_qualification_type = 'purchase' and profile_role is distinct from 'guest' then return; end if;
-  if target_qualification_type in ('task', 'manager_listing') and profile_role not in ('manager', 'service_provider') then return; end if;
+  if target_qualification_type in ('task', 'manager_listing') and profile_role not in ('manager', 'worker') then return; end if;
 
   select * into referral_row from public.loyalty_referrals
    where referred_user_id = target_user_id and status = 'pending' for update;
@@ -694,13 +694,13 @@ revoke all on function public.qualify_loyalty_referral(uuid, text, text, uuid, n
 create or replace function public.submit_task_report_for_approval(target_report_id uuid)
 returns void language plpgsql security definer set search_path = pg_catalog, public
 as $$
-declare report_row public.task_reports%rowtype; provider_profile_id uuid;
+declare report_row public.task_reports%rowtype; worker_profile_id uuid;
 begin
   if auth.uid() is null then raise exception 'Sign in to submit work for approval'; end if;
-  select id into provider_profile_id from public.user_profiles where user_id = auth.uid() and role = 'service_provider';
-  if provider_profile_id is null then raise exception 'Only the assigned service provider can submit this report'; end if;
+  select id into worker_profile_id from public.user_profiles where user_id = auth.uid() and role = 'worker';
+  if worker_profile_id is null then raise exception 'Only the assigned worker can submit this report'; end if;
   select * into report_row from public.task_reports where id = target_report_id for update;
-  if not found or report_row.provider_id <> provider_profile_id then raise exception 'Task report was not found'; end if;
+  if not found or report_row.worker_id <> worker_profile_id then raise exception 'Task report was not found'; end if;
   if report_row.status <> 'in_progress' or report_row.percentage_complete < 100 then
     raise exception 'Complete the report before requesting approval';
   end if;
@@ -717,7 +717,7 @@ as $$
 declare
   report_row public.task_reports%rowtype;
   task_row public.tasks%rowtype;
-  provider_user_id uuid;
+  worker_user_id uuid;
   actor_role text;
   points_this_month bigint;
   reward_points integer;
@@ -731,33 +731,33 @@ begin
   if not found or task_row.created_by <> auth.uid() or actor_role <> 'manager' then
     raise exception 'Only the task manager can approve this report';
   end if;
-  if task_row.assigned_to is distinct from report_row.provider_id
+  if task_row.assigned_to is distinct from report_row.worker_id
      or report_row.status <> 'completed_pending_approval' then
     raise exception 'This task report is not ready for approval';
   end if;
-  select user_id into provider_user_id from public.user_profiles
-    where id = report_row.provider_id and role = 'service_provider';
-  if provider_user_id is null then raise exception 'Assigned service provider account was not found'; end if;
-  perform 1 from public.loyalty_accounts where user_id = provider_user_id for update;
+  select user_id into worker_user_id from public.user_profiles
+    where id = report_row.worker_id and role = 'worker';
+  if worker_user_id is null then raise exception 'Assigned worker account was not found'; end if;
+  perform 1 from public.loyalty_accounts where user_id = worker_user_id for update;
 
   update public.task_reports set status = 'approved', last_updated_by = auth.uid(), updated_at = now()
    where id = report_row.id;
   update public.tasks set status = 'completed', updated_at = now() where id = task_row.id;
   insert into public.notifications (user_id, task_id, type, message)
-  values (provider_user_id, task_row.id, 'task_updated', 'Your task "' || task_row.title || '" has been approved and marked complete.');
+  values (worker_user_id, task_row.id, 'task_updated', 'Your task "' || task_row.title || '" has been approved and marked complete.');
 
   select coalesce(sum(points_delta), 0) into points_this_month
     from public.loyalty_ledger_entries
-   where user_id = provider_user_id and entry_type = 'task_earn'
+   where user_id = worker_user_id and entry_type = 'task_earn'
      and created_at >= date_trunc('month', now());
   select monthly_task_points_cap, task_approval_points into task_cap, reward_points
     from public.loyalty_program_settings where id = true;
   reward_points := least(reward_points, greatest(task_cap - points_this_month, 0)::integer);
   if reward_points > 0
      and exists (select 1 from public.loyalty_program_settings where id = true and program_enabled)
-     and exists (select 1 from public.loyalty_accounts where user_id = provider_user_id and is_enrolled) then
+     and exists (select 1 from public.loyalty_accounts where user_id = worker_user_id and is_enrolled) then
     if public.apply_loyalty_points_delta(
-      provider_user_id, 'task_earn', reward_points, 'approved_task', task_row.id,
+      worker_user_id, 'task_earn', reward_points, 'approved_task', task_row.id,
       'Manager-approved service task reward'
     ) is null then
       reward_points := 0;
@@ -765,7 +765,7 @@ begin
   else
     reward_points := 0;
   end if;
-  perform public.qualify_loyalty_referral(provider_user_id, 'task', 'approved_task', task_row.id, null);
+  perform public.qualify_loyalty_referral(worker_user_id, 'task', 'approved_task', task_row.id, null);
   return reward_points;
 end;
 $$;
@@ -775,25 +775,25 @@ grant execute on function public.approve_task_report_and_award_points(uuid) to a
 -- Keep direct client writes away from approval status. Existing forms write only these fields.
 revoke insert, update, delete on public.task_reports from public, anon, authenticated;
 grant select on public.task_reports to authenticated;
-grant insert (task_id, provider_id, description, percentage_complete, last_updated_by)
+grant insert (task_id, worker_id, description, percentage_complete, last_updated_by)
   on public.task_reports to authenticated;
 grant update (description, percentage_complete, last_updated_by, updated_at)
   on public.task_reports to authenticated;
 drop policy if exists task_reports_insert on public.task_reports;
 create policy task_reports_insert on public.task_reports for insert to authenticated
   with check (
-    provider_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'service_provider')
+    worker_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'worker')
     and status = 'in_progress'
-    and exists (select 1 from public.tasks task where task.id = task_reports.task_id and task.assigned_to = task_reports.provider_id)
+    and exists (select 1 from public.tasks task where task.id = task_reports.task_id and task.assigned_to = task_reports.worker_id)
   );
 drop policy if exists task_reports_update on public.task_reports;
 create policy task_reports_update on public.task_reports for update to authenticated
   using (
     status <> 'approved'
-    and provider_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'service_provider')
+    and worker_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'worker')
   )
   with check (
-    provider_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'service_provider')
+    worker_id = (select id from public.user_profiles where user_id = auth.uid() and role = 'worker')
   );
 
 -- Award one referral milestone for a manager's first published room listing.
