@@ -213,7 +213,9 @@ begin
 end;
 $$;
 
-create or replace function public.qualify_loyalty_referral(
+drop function if exists public.qualify_loyalty_referral(uuid, text, text, uuid, numeric);
+
+create function public.qualify_loyalty_referral(
   target_user_id uuid,
   target_qualification_type text,
   target_source_type text,
