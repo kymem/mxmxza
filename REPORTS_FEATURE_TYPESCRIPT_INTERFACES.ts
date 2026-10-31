@@ -69,7 +69,7 @@ export type EvidenceType = 'photo' | 'video' | 'document' | 'signature';
 export interface TaskReport {
   id: string;
   task_id: string;
-  provider_id: string; // FK to user_profiles
+  worker_id: string; // FK to user_profiles
   status: 'in_progress' | 'completed_pending_approval' | 'approved';
   description: string; // Narrative description of work done
   percentage_complete: number; // 0-100
@@ -102,7 +102,7 @@ export interface TaskReportChecklistItem {
 export interface TaskEvidenceSubmission {
   id: string;
   task_id: string;
-  provider_id: string; // FK to user_profiles
+  worker_id: string; // FK to user_profiles
   evidence_type: EvidenceType;
   attachment_id: string; // FK to attachments
   description: string | null;
@@ -124,7 +124,7 @@ export interface TaskEvidenceSubmission {
 export interface TaskIssue {
   id: string;
   task_id: string;
-  provider_id: string; // FK to user_profiles
+  worker_id: string; // FK to user_profiles
   title: string;
   description: string;
   severity: IssueSeverity;
@@ -153,8 +153,8 @@ export interface TaskReportSummary {
   task_priority: 'low' | 'medium' | 'high' | 'urgent';
   
   // Provider info
-  provider_id: string;
-  provider_name: string;
+  worker_id: string;
+  worker_name: string;
   
   // Progress tracking
   status: TaskReport['status'];
@@ -327,7 +327,7 @@ export interface ReportNotificationPayload {
   type: ReportNotificationType;
   task_id: string;
   task_title: string;
-  provider_name?: string;
+  worker_name?: string;
   manager_name?: string;
   data?: {
     percentage_complete?: number;
@@ -348,7 +348,7 @@ export interface ReportFilters {
   status?: TaskReport['status'];
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   has_open_issues?: boolean;
-  provider_id?: string;
+  worker_id?: string;
   date_range?: {
     from: string;
     to: string;
@@ -378,7 +378,7 @@ const newTaskData: NewTaskWithChecklistForm = {
   description: 'Complete renovation...',
   priority: 'high',
   category: 'service',
-  assigned_to: 'provider-profile-id',
+  assigned_to: 'worker-profile-id',
   assigned_category: 'internal',
   due_date: '2024-01-15',
   budget: 2500,
@@ -419,7 +419,7 @@ const filters: ReportFilters = {
 const evidenceWithAttachment: EvidenceSubmissionWithAttachment = {
   id: 'evidence-id',
   task_id: 'task-id',
-  provider_id: 'provider-id',
+  worker_id: 'provider-id',
   evidence_type: 'photo',
   attachment_id: 'attachment-id',
   description: 'Wall preparation complete',

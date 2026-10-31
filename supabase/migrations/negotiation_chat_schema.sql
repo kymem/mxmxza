@@ -66,7 +66,7 @@ COMMENT ON COLUMN public.task_negotiation_status.final_notes IS
 -- - id: UUID primary key
 -- - task_id: FK to tasks
 -- - sender_id: FK to auth.users
--- - sender_role: 'manager' | 'service_provider'
+-- - sender_role: 'manager' | 'worker'
 -- - message_text: TEXT
 -- - attachments: JSONB (currently storing array - will be deprecated in favor of junction table)
 -- - is_read: BOOLEAN
@@ -81,7 +81,7 @@ COMMENT ON COLUMN public.task_negotiation_status.final_notes IS
 -- The task_proposals table is already correct:
 -- - id: UUID primary key
 -- - task_id: FK to tasks
--- - provider_id: FK to user_profiles (service provider)
+-- - worker_id: FK to user_profiles (worker)
 -- - manager_id: FK to auth.users (manager)
 -- - status: 'pending' | 'accepted' | 'declined' | 'counter_proposed'
 -- - quoted_price: NUMERIC(12,2)
@@ -96,7 +96,7 @@ COMMENT ON COLUMN public.task_negotiation_status.final_notes IS
 -- The todo_list table is already correct:
 -- - id: UUID primary key
 -- - task_id: FK to tasks
--- - provider_id: FK to user_profiles (NOT auth.users - IMPORTANT!)
+-- - worker_id: FK to user_profiles (NOT auth.users - IMPORTANT!)
 -- - status: 'pending' | 'in_progress' | 'completed'
 -- - title: VARCHAR(255)
 -- - description: TEXT
@@ -107,7 +107,7 @@ COMMENT ON COLUMN public.task_negotiation_status.final_notes IS
 -- - attachments: JSONB (deprecated in favor of junction table)
 -- - created_at, completed_at, updated_at: TIMESTAMP
 --
--- CRITICAL: provider_id must be from user_profiles.id, NOT auth.users.id
+-- CRITICAL: worker_id must be from user_profiles.id, NOT auth.users.id
 -- This is where the 409 FK constraint error occurs if not done correctly.
 
 -- ===================================================================
@@ -134,7 +134,7 @@ CREATE OR REPLACE VIEW public.negotiation_threads AS
 SELECT
   tp.id AS proposal_id,
   tp.task_id,
-  tp.provider_id,
+  tp.worker_id,
   tp.manager_id,
   tp.status,
   tp.quoted_price,
@@ -149,7 +149,7 @@ SELECT
 FROM task_proposals tp
 LEFT JOIN task_messages tm ON tp.task_id = tm.task_id
 LEFT JOIN task_negotiation_status tns ON tp.task_id = tns.task_id
-GROUP BY tp.id, tp.task_id, tp.provider_id, tp.manager_id, tp.status,
+GROUP BY tp.id, tp.task_id, tp.worker_id, tp.manager_id, tp.status,
   tp.quoted_price, tp.proposed_timeline, tp.proposal_notes,
   tns.final_price, tns.final_timeline, tns.final_notes, tns.status;
 
@@ -222,7 +222,7 @@ CREATE POLICY task_message_attachments_view_policy
           SELECT 1 FROM task_proposals tp
           WHERE tp.task_id = tm.task_id
           AND (
-            tp.provider_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid())
+            tp.worker_id = (SELECT id FROM user_profiles WHERE user_id = auth.uid())
             OR tp.manager_id = auth.uid()
           )
         )
@@ -249,6 +249,6 @@ CREATE POLICY task_message_attachments_view_policy
 --   ✓ on_proposal_finalized() - auto-update negotiation status
 --
 -- CRITICAL REMINDERS:
---   ⚠️  provider_id in todo_list MUST reference user_profiles.id, NOT auth.users.id
+--   ⚠️  worker_id in todo_list MUST reference user_profiles.id, NOT auth.users.id
 --   ⚠️  Ensure currentUserProfile.id is used when creating todos, not currentUser.id
 --   ⚠️  Message attachments can use JSONB or junction table - recommend junction for consistency
