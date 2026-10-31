@@ -958,7 +958,7 @@ const EventsPage: React.FC = () => {
 
   const planningTools = [
     { title: "Budget Calculator", description: "Plan your event budget with our interactive tool", icon: CreditCard, action: "Calculate" },
-    { title: "Vendor Directory", description: "Find trusted local vendors and service providers", icon: Users, action: "Browse" },
+    { title: "Vendor Directory", description: "Find trusted local vendors and workers", icon: Users, action: "Browse" },
     { title: "Timeline Planner", description: "Create detailed event timelines and schedules", icon: Clock, action: "Plan" },
     { title: "Guest Manager", description: "Manage invitations and RSVPs efficiently", icon: Users, action: "Manage" },
   ];

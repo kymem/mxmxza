@@ -24,7 +24,7 @@ type Provider = {
   testimonials: Array<{ rating: number; testimonial: string; reviewer_name: string; created_at: string }>;
 };
 
-const ServiceProvidersPage = () => {
+const WorkersPage = () => {
   const { tenant, loading: tenantLoading } = useHotelTenant();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [search, setSearch] = useState("");
@@ -35,7 +35,7 @@ const ServiceProvidersPage = () => {
     if (tenantLoading) return;
     if (!tenant?.organizationId) {
       setIsLoading(false);
-      setLoadError("Provider discovery is available from a hotel workspace.");
+      setLoadError("Worker discovery is available from a hotel workspace.");
       return;
     }
 
@@ -46,8 +46,8 @@ const ServiceProvidersPage = () => {
     }).then(({ data, error }) => {
       if (!active) return;
       if (error) {
-        console.error("Unable to load service provider directory:", error);
-        setLoadError("You need hotel manager access to browse service providers.");
+        console.error("Unable to load worker directory:", error);
+        setLoadError("You need hotel manager access to browse workers.");
         setProviders([]);
       } else {
         setLoadError("");
@@ -81,13 +81,13 @@ const ServiceProvidersPage = () => {
             <p className="mb-2 flex items-center gap-2 text-sm font-medium text-sheraton-navy">
               <Briefcase className="h-4 w-4" /> {tenant?.name || "Hotel workspace"}
             </p>
-            <h1 className="text-3xl font-bold text-sheraton-navy">Service Provider Directory</h1>
-            <p className="mt-2 max-w-2xl text-muted-foreground">Find opted-in external providers for hotel work. Ratings and completed tasks shown here are from this hotel.</p>
+            <h1 className="text-3xl font-bold text-sheraton-navy">Worker Directory</h1>
+            <p className="mt-2 max-w-2xl text-muted-foreground">Find opted-in external vendors for hotel work. Ratings and completed tasks shown here are from this hotel.</p>
           </div>
           <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              aria-label="Search providers"
+              aria-label="Search workers"
               className="pl-9"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -110,14 +110,14 @@ const ServiceProvidersPage = () => {
           <Card>
             <CardContent className="flex flex-col items-center p-10 text-center">
               <UserRound className="mb-3 h-10 w-10 text-muted-foreground" />
-              <h2 className="font-semibold text-sheraton-navy">{providers.length ? "No matching providers" : "No listed providers yet"}</h2>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">{providers.length ? "Try a different service or specialty." : "External providers can opt in from their profile. You can still create a task and assign internal staff."}</p>
+              <h2 className="font-semibold text-sheraton-navy">{providers.length ? "No matching workers" : "No listed workers yet"}</h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">{providers.length ? "Try a different service or specialty." : "External vendors can opt in from their profile. You can still create a task and assign internal staff."}</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
             {filteredProviders.map((provider) => {
-              const initials = (provider.full_name || "Provider").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+              const initials = (provider.full_name || "Worker").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
               return (
                 <Card key={provider.profile_id} className="overflow-hidden">
                   <CardHeader className="pb-3">
@@ -127,8 +127,8 @@ const ServiceProvidersPage = () => {
                         <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-lg">{provider.full_name || "Service provider"}</CardTitle>
-                        <p className="mt-1 text-sm text-muted-foreground">{provider.service_type || "External provider"}</p>
+                        <CardTitle className="text-lg">{provider.full_name || "Worker"}</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground">{provider.service_type || "External vendor"}</p>
                         {provider.location && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" />{provider.location}</p>}
                       </div>
                       <div className="text-right">
@@ -169,4 +169,4 @@ const ServiceProvidersPage = () => {
   );
 };
 
-export default ServiceProvidersPage;
+export default WorkersPage;

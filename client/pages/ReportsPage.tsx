@@ -283,7 +283,7 @@ const ReportsPage: React.FC = () => {
                             {vendor.name}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            Service Provider
+                            Worker
                           </p>
                         </div>
                         <div className="flex items-center gap-1">

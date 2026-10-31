@@ -29,14 +29,15 @@ import {
 import { supabase, Task as TaskType, TaskResponse, TaskProposal, TodoListItem, UserProfile, FileAttachment } from "../../../../lib/supabase";
 import { toast } from "../../../../hooks/use-toast";
 import AttachmentList from "../../../../components/AttachmentList";
-import ServiceProviderProposalReview from "../../../../components/ServiceProviderProposalReview";
+import WorkerProposalReview from "../../../../components/WorkerProposalReview";
 import ManagerProposalReview from "../../../../components/ManagerProposalReview";
 import TodoItem from "../../../../components/TodoItem";
 import { getPriorityColor, getStatusColor, getStatusLabel } from "../../utils/taskDisplay";
 import StatusIcon from "../StatusIcon";
+import { AppRole, isWorkerRole } from "../../../../lib/roles";
 
 interface TodoListTabProps {
-  userRole: "guest" | "manager" | "service_provider" | null;
+  userRole: AppRole | null;
   currentUserProfile: UserProfile | null;
   tasks: TaskType[];
   taskResponses: TaskResponse[];
@@ -77,9 +78,9 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Helper: Get tasks assigned to current service provider that have no response yet
+  // Helper: Get tasks assigned to current worker that have no response yet
   const getUnrespondedAssignedTasks = () => {
-    if (!currentUserProfile || userRole !== "service_provider") return [];
+    if (!currentUserProfile || !isWorkerRole(userRole)) return [];
 
     const unresponded = tasks.filter((task) => {
       const isAssignedToMe = task.assigned_to === currentUserProfile.id;
@@ -108,9 +109,9 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
     return unresponded;
   };
 
-  // Helper: Get pending proposals for current service provider
+  // Helper: Get pending proposals for current worker
   const getPendingProposalsForProvider = () => {
-    if (!currentUserProfile || userRole !== "service_provider") return [];
+    if (!currentUserProfile || !isWorkerRole(userRole)) return [];
 
     return taskProposals.filter((proposal) => {
       const isForMe = proposal.provider_id === currentUserProfile.id;
@@ -129,7 +130,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
     return matchesSearch && matchesFilter;
   });
 
-  if (userRole === "service_provider") {
+  if (isWorkerRole(userRole)) {
     return (
       <div className="space-y-6">
         {/* SECTION 1: AWAITING YOUR RESPONSE */}
@@ -256,7 +257,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
                 const task = tasks.find((t) => t.id === proposal.task_id);
 
                 return (
-                  <ServiceProviderProposalReview
+                  <WorkerProposalReview
                     key={proposal.id}
                     proposal={proposal}
                     taskTitle={task?.title || "Unknown Task"}

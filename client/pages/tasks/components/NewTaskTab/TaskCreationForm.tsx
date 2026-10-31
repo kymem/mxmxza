@@ -241,10 +241,10 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                 {formData.assignmentType === "external" && (
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-muted-foreground">
-                      {externalVendors.length === 0 ? "No listed providers are available for this hotel." : formData.assignee ? "Provider selected from the directory." : "Browse the directory to choose a provider."}
+                      {externalVendors.length === 0 ? "No listed workers are available for this hotel." : formData.assignee ? "Worker selected from the directory." : "Browse the directory to choose a worker."}
                     </p>
                     <Button variant="link" size="sm" asChild className="h-auto p-0">
-                      <Link to="/service-providers">Browse provider directory</Link>
+                      <Link to="/workers">Browse worker directory</Link>
                     </Button>
                   </div>
                 )}
@@ -348,7 +348,7 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 italic">
-                  No checklist items yet. Add items to help the service provider
+                  No checklist items yet. Add items to help the worker
                   track task completion.
                 </p>
               )}
@@ -360,7 +360,7 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
                 Evidence/Proof Requirements (Optional)
               </Label>
               <p className="text-sm text-gray-600">
-                Select what types of evidence the service provider must submit
+                Select what types of evidence the worker must submit
                 to prove task completion
               </p>
 

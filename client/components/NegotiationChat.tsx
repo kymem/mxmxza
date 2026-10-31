@@ -41,7 +41,7 @@ interface NegotiationChatProps {
   taskId: string;
   currentUserId: string; // auth.users.id
   currentUserProfileId: string; // user_profiles.id (required for todo_list.provider_id)
-  currentUserRole: "manager" | "service_provider";
+  currentUserRole: "manager" | "worker";
   otherPartyName: string;
   initialProposal: TaskProposal;
   task: Task;
@@ -263,9 +263,9 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
       if (proposalError) throw proposalError;
 
       // Determine provider_id based on role
-      // For service_provider: use currentUserProfileId
-      // For manager: use initialProposal.provider_id (the service provider's profile ID)
-      const providerId = currentUserRole === "service_provider"
+      // For worker: use currentUserProfileId
+      // For manager: use initialProposal.provider_id (the worker's profile ID)
+      const providerId = currentUserRole === "worker"
         ? currentUserProfileId
         : initialProposal.provider_id;
 
@@ -662,7 +662,7 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
                     <p className="text-xs font-semibold mb-1 opacity-75">
                       {message.sender_role === "manager"
                         ? "Manager"
-                        : "Service Provider"}
+                        : "Worker"}
                     </p>
                     <p className="text-sm break-words">{message.message_text}</p>
 

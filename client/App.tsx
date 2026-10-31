@@ -36,7 +36,8 @@ import BooksPage from "./pages/BooksPage";
 import ReviewsPage from "./pages/ReviewsPage";
 import ConciergePage from "./pages/ConciergePage";
 import OffersPage from "./pages/OffersPage";
-import ServiceProvidersPage from "./pages/ServiceProvidersPage";
+import WorkersPage from "./pages/WorkersPage";
+import { isWorkerRole } from "./lib/roles";
 import BillingPlansPage from "./pages/BillingPlansPage";
 import PaymentMethodPage from "./pages/PaymentMethodPage";
 import PayoutMethodPage from "./pages/PayoutMethodPage";
@@ -80,9 +81,11 @@ function RoleAwareHomePage() {
       if (!active) return;
 
       const profileRole = profile?.role as HomeRole | undefined;
-      const nextRole = profileRole === "manager" || profileRole === "service_provider"
-        ? profileRole
-        : "guest";
+      const nextRole: HomeRole = profileRole === "manager"
+        ? "manager"
+        : isWorkerRole(profileRole)
+          ? "worker"
+          : "guest";
       const fullName = [profile?.first_name, profile?.last_name]
         .filter((part): part is string => Boolean(part?.trim()))
         .join(" ");
@@ -90,8 +93,8 @@ function RoleAwareHomePage() {
       const nextDisplayName = fullName ||
         (nextRole === "manager"
           ? "Manager"
-          : nextRole === "service_provider"
-            ? "Service Provider"
+          : nextRole === "worker"
+            ? "Worker"
             : "Special Guest");
 
       cacheHomeIdentity({ role: nextRole, displayName: nextDisplayName });
@@ -117,7 +120,7 @@ function RoleAwareHomePage() {
     return <HomePage displayName={displayName} />;
   }
 
-  return <ServicesHomePage role={role} displayName={displayName} />;
+  return <ServicesHomePage role={role === "manager" ? "manager" : "worker"} displayName={displayName} />;
 }
 
 function App() {
@@ -141,7 +144,7 @@ function App() {
               <Route path="/travel" element={<TravelDeskPage />} />
               <Route path="/events/operations/:eventId" element={<SpecialEventOperationsPage />} />
               <Route path="/events" element={<EventsPage />} />
-              <Route path="/service-providers" element={<ServiceProvidersPage />} />
+              <Route path="/workers" element={<WorkersPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/register" element={<RegisterPage />} />

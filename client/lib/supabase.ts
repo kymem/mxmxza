@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js'
+import type { AppRole } from './roles'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -46,12 +47,12 @@ export const useSupabaseAuth = () => useSyncExternalStore(subscribeToAuth, getAu
 export interface UserProfile {
   id: string
   email: string
-  role: 'guest' | 'manager' | 'service_provider'
+  role: AppRole
   first_name: string
   last_name: string
   phone: string
   room_number?: string
-  service_type?: string // for service providers
+  service_type?: string // for workers
   service_category?: string // internal or external
   menu_access_role?: 'none' | 'chef' | 'food_beverage_manager'
   menu_access_approved?: boolean
@@ -188,7 +189,7 @@ export interface TaskMessage {
   id: string
   task_id: string
   sender_id: string
-  sender_role: 'manager' | 'service_provider'
+  sender_role: 'manager' | 'worker' | 'service_provider'
   message_text: string
   attachments: Array<{id: string; name: string; size: number}> | null
   is_read: boolean

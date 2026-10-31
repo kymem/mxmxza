@@ -14,7 +14,7 @@ import { toast } from "../hooks/use-toast";
 interface TaskChatProps {
   taskId: string;
   currentUserId: string;
-  currentUserRole: "manager" | "service_provider";
+  currentUserRole: "manager" | "worker";
   taskStatus: string; // Determines if chat is available
   otherPartyName: string;
 }
@@ -185,7 +185,7 @@ export const TaskChat: React.FC<TaskChatProps> = ({
                   }`}
                 >
                   <p className="text-xs font-semibold mb-1 opacity-75">
-                    {message.sender_role === "manager" ? "Manager" : "Provider"}
+                    {message.sender_role === "manager" ? "Manager" : "Worker"}
                   </p>
                   <p className="text-sm break-words">{message.message_text}</p>
                   <p className="text-xs opacity-70 mt-1">

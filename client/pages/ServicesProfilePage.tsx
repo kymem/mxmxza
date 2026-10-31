@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AppRole, isWorkerRole } from "../lib/roles";
 import { Button } from "../components/ui/button";
 import { BillingTab } from "./components/BillingTab";
 import { supabase } from "../lib/supabase";
@@ -108,7 +109,7 @@ const emptyDirectoryForm: DirectoryForm = {
 const fetchDirectoryListing = async (): Promise<{ listing: DirectoryListing | null; error: string | null }> => {
   const { data, error } = await supabase.rpc("get_my_service_provider_directory_profile");
   if (error) {
-    console.error("Unable to load provider directory profile:", error);
+    console.error("Unable to load worker directory profile:", error);
     return { listing: null, error: error.message };
   }
   const row = data?.[0];
@@ -135,8 +136,8 @@ const ServicesProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [userRole, setUserRole] = useState<'guest' | 'manager' | 'service_provider' | null>(null);
-  const [isExternalServiceProvider, setIsExternalServiceProvider] = useState(false);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
+  const [isExternalWorker, setIsExternalWorker] = useState(false);
   const [isDirectorySaving, setIsDirectorySaving] = useState(false);
   const [isDirectoryRemoving, setIsDirectoryRemoving] = useState(false);
   const [directoryListing, setDirectoryListing] = useState<DirectoryListing | null>(null);
@@ -263,10 +264,10 @@ const ServicesProfilePage = () => {
         }
 
         const resolvedRole = resolvedProfile?.role ||
-          (metadata.role === "manager" ? "manager" : "service_provider");
+          (metadata.role === "manager" ? "manager" : "worker");
         setUserRole(resolvedRole);
-        setIsExternalServiceProvider(resolvedRole === "service_provider" && resolvedProfile?.service_category === "external");
-        if (resolvedRole === "service_provider" && resolvedProfile?.service_category === "external") {
+        setIsExternalWorker(isWorkerRole(resolvedRole) && resolvedProfile?.service_category === "external");
+        if (isWorkerRole(resolvedRole) && resolvedProfile?.service_category === "external") {
           const { listing } = await fetchDirectoryListing();
           setDirectoryListing(listing);
         }
@@ -519,7 +520,7 @@ const ServicesProfilePage = () => {
           <div className="flex items-center justify-center mb-4">
             <Briefcase className="h-8 w-8 text-sheraton-gold mr-2" />
             <Badge className="bg-sheraton-gold text-sheraton-navy px-4 py-2">
-              {userRole === 'manager' ? 'Property Manager' : userRole === 'guest' ? 'Guest Member' : 'Service Partner'}
+              {userRole === 'manager' ? 'Property Manager' : userRole === 'guest' ? 'Guest Member' : 'Worker'}
             </Badge>
           </div>
           {userData.firstName && (
@@ -803,7 +804,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Dashboard
+              // Worker Dashboard
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Service Summary */}
@@ -1088,7 +1089,7 @@ const ServicesProfilePage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Service Provider Performance */}
+                  {/* Worker Performance */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1119,7 +1120,7 @@ const ServicesProfilePage = () => {
                       <Separator />
 
                       <Button variant="outline" className="w-full">
-                        View All Providers
+                        View All Workers
                       </Button>
                     </CardContent>
                   </Card>
@@ -1160,7 +1161,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Performance
+              // Worker Performance
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Performance Metrics */}
@@ -1471,12 +1472,12 @@ const ServicesProfilePage = () => {
                 </div>
               </CardContent>
             </Card>
-            {isExternalServiceProvider && (
+            {isExternalWorker && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="h-5 w-5 text-sheraton-gold" />
-                    Service Provider Directory
+                    Worker Directory
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">Choose whether hotel managers can discover your services. Your private reports and work media are not shared in the directory.</p>
                 </CardHeader>
@@ -1541,7 +1542,7 @@ const ServicesProfilePage = () => {
                   )}
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-1">
-                      <Label htmlFor="provider-directory-listed">List my provider profile</Label>
+                      <Label htmlFor="provider-directory-listed">List my worker profile</Label>
                       <p className="text-sm text-muted-foreground">You can turn this off at any time.</p>
                     </div>
                     <Switch
@@ -1636,7 +1637,7 @@ const ServicesProfilePage = () => {
                           status: 'completed',
                         },
                         {
-                          title: 'Service Provider Performance Review',
+                          title: 'Worker Performance Review',
                           date: '2024-01-10',
                           providers: 5,
                           avgRating: 4.7,
@@ -1708,7 +1709,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Activities
+              // Worker Activities
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1868,7 +1869,7 @@ const ServicesProfilePage = () => {
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="newsletter">Provider Updates</Label>
+                          <Label htmlFor="newsletter">Worker Updates</Label>
                           <Switch
                             id="newsletter"
                             checked={
@@ -1880,7 +1881,7 @@ const ServicesProfilePage = () => {
                     </div>
                   </div>
                 ) : (
-                  // Service Provider Preferences
+                  // Worker Preferences
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h3 className="font-semibold">Service Preferences</h3>
@@ -2093,7 +2094,7 @@ const ServicesProfilePage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-sheraton-gold" />
-                      Refer Service Providers & Property Managers
+                      Refer Workers & Property Managers
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -2101,7 +2102,7 @@ const ServicesProfilePage = () => {
                       <Gift className="h-12 w-12 mx-auto mb-4 text-sheraton-gold" />
                       <h3 className="text-xl font-bold mb-2">Grow Your Network</h3>
                       <p className="text-muted-foreground mb-4">
-                        Refer qualified service providers or property managers to earn rewards and build your trusted network
+                        Refer qualified workers or property managers to earn rewards and build your trusted network
                       </p>
                       <div className="flex items-center justify-center gap-2 p-3 bg-white rounded-lg border">
                         <code className="font-mono text-lg">
@@ -2122,7 +2123,7 @@ const ServicesProfilePage = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <Users className="h-4 w-4 text-sheraton-gold" />
-                            Refer Service Providers
+                            Refer Workers
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2227,13 +2228,13 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Referrals
+              // Worker Referrals
               <>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-sheraton-gold" />
-                      Refer Service Providers & Property Managers
+                      Refer Workers & Property Managers
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -2241,7 +2242,7 @@ const ServicesProfilePage = () => {
                       <Gift className="h-12 w-12 mx-auto mb-4 text-sheraton-gold" />
                       <h3 className="text-xl font-bold mb-2">Grow Your Network & Earn</h3>
                       <p className="text-muted-foreground mb-4">
-                        Refer qualified service providers or property managers and earn rewards
+                        Refer qualified workers or property managers and earn rewards
                       </p>
                       <div className="flex items-center justify-center gap-2 p-3 bg-white rounded-lg border">
                         <code className="font-mono text-lg">
@@ -2262,7 +2263,7 @@ const ServicesProfilePage = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <Users className="h-4 w-4 text-sheraton-gold" />
-                            Refer Service Providers
+                            Refer Workers
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">

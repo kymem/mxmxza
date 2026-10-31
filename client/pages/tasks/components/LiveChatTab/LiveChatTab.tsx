@@ -7,6 +7,7 @@ import {
 } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
 import { Badge } from "../../../../components/ui/badge";
+import { AppRole, isWorkerRole } from "../../../../lib/roles";
 import {
   CheckSquare,
   MessageSquare,
@@ -20,7 +21,7 @@ interface LiveChatTabProps {
   tasks: TaskType[];
   currentUser: any;
   currentUserProfile: UserProfile | null;
-  userRole: "guest" | "manager" | "service_provider" | null;
+  userRole: AppRole | null;
   onTaskSelect: (taskId: string) => void;
   onTabChange: (tab: string) => void;
 }
@@ -68,11 +69,11 @@ const LiveChatTab: React.FC<LiveChatTabProps> = ({
         <TaskChat
           taskId={selectedTask}
           currentUserId={currentUser.id}
-          currentUserRole={userRole as "manager" | "service_provider"}
+          currentUserRole={isWorkerRole(userRole) ? "worker" : "manager"}
           taskStatus={currentTaskData?.status || ""}
           otherPartyName={
             userRole === "manager"
-              ? currentTaskData?.assignee_name || "Provider"
+              ? currentTaskData?.assignee_name || "Worker"
               : currentTaskData?.title || "Manager"
           }
         />

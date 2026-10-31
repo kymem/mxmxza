@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isWorkerRole, WORKER_ROLE_VALUES } from "../lib/roles";
 import { ArrowLeft, Camera, CheckCircle, ChefHat, Edit2, Eye, EyeOff, Plus, Trash2, Upload, Video, X, Zap } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -102,7 +103,7 @@ const MenuManagementPage = () => {
         supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin", "provider"]).maybeSingle(),
       ]);
       const manager = profile?.role === "manager" && (membership?.role === "owner" || membership?.role === "admin");
-      const approvedProvider = profile?.role === "service_provider"
+      const approvedProvider = profile && isWorkerRole(profile.role)
         && profile.menu_access_approved === true
         && (profile.menu_access_role === "chef" || profile.menu_access_role === "food_beverage_manager")
         && membership?.role === "provider";
@@ -113,7 +114,7 @@ const MenuManagementPage = () => {
         const { data: providers } = await supabase
           .from("user_profiles")
           .select("user_id, email, first_name, last_name, service_type, menu_access_role")
-          .eq("role", "service_provider")
+          .in("role", WORKER_ROLE_VALUES)
           .eq("menu_access_approved", false)
           .in("menu_access_role", ["chef", "food_beverage_manager"])
           .order("created_at", { ascending: true });

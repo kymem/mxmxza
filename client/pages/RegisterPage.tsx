@@ -39,8 +39,8 @@ const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     // User Role
-    role: "" as "guest" | "manager" | "service_provider" | "",
-    // Service Provider Fields
+    role: "" as "guest" | "manager" | "worker" | "",
+    // Worker Fields
     serviceType: "",
     serviceCategory: "" as "internal" | "external" | "",
     menuAccessRole: "none" as "none" | "chef" | "food_beverage_manager",
@@ -104,7 +104,7 @@ const RegisterPage: React.FC = () => {
       if (!formData.role) {
         newErrors.role = "Please select a user role";
       }
-      if (formData.role === "service_provider") {
+      if (formData.role === "worker") {
         if (!formData.serviceType.trim()) {
           newErrors.serviceType = "Service type is required";
         }
@@ -219,8 +219,8 @@ const RegisterPage: React.FC = () => {
         role: formData.role,
       };
 
-      // Only add service provider fields if they selected that role
-      if (formData.role === "service_provider") {
+      // Only add worker fields if they selected that role
+      if (formData.role === "worker") {
         profileData.service_type = formData.serviceType;
         profileData.service_category = formData.serviceCategory;
         profileData.menu_access_role = formData.menuAccessRole;
@@ -328,36 +328,36 @@ const RegisterPage: React.FC = () => {
           )}
         </button>
 
-        {/* Service Provider Role */}
+        {/* Worker Role */}
         <button
           type="button"
           onClick={() =>
             setFormData((prev) => ({
               ...prev,
-              role: "service_provider",
+              role: "worker",
             }))
           }
           className={`p-6 rounded-lg border-2 transition-all ${
-            formData.role === "service_provider"
+            formData.role === "worker"
               ? "border-sheraton-gold bg-sheraton-cream"
               : "border-gray-200 bg-white hover:border-sheraton-gold"
           }`}
         >
           <div className="text-4xl mb-3">🔧</div>
-          <h3 className="font-bold text-sheraton-navy mb-2">Service Provider</h3>
+          <h3 className="font-bold text-sheraton-navy mb-2">Worker</h3>
           <p className="text-sm text-gray-600">
             I provide services (internal staff or external vendor)
           </p>
-          {formData.role === "service_provider" && (
+          {formData.role === "worker" && (
             <div className="mt-4 text-sheraton-gold font-semibold">✓ Selected</div>
           )}
         </button>
       </div>
 
-      {/* Service Provider Details */}
-      {formData.role === "service_provider" && (
+      {/* Worker Details */}
+      {formData.role === "worker" && (
         <div className="bg-sheraton-cream rounded-lg p-6 space-y-4">
-          <h3 className="font-semibold text-sheraton-navy">Service Provider Details</h3>
+          <h3 className="font-semibold text-sheraton-navy">Worker Details</h3>
 
           <div className="space-y-2">
             <label className="block text-sm font-medium">Service Type *</label>

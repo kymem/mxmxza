@@ -3,12 +3,13 @@ import { supabase, Task as TaskType, UserProfile, TaskReport, TaskChecklist, Tas
 import { toast } from "../../../../hooks/use-toast";
 import ProviderReportForm from "./ProviderReportForm";
 import ManagerReportView from "./ManagerReportView";
+import { AppRole, isWorkerRole } from "../../../../lib/roles";
 
 interface ReportsTabProps {
   tasks: TaskType[];
   currentUser: any;
   currentUserProfile: UserProfile | null;
-  userRole: "guest" | "manager" | "service_provider" | null;
+  userRole: AppRole | null;
 }
 
 const ReportsTab: React.FC<ReportsTabProps> = ({
@@ -18,7 +19,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
   userRole,
 }) => {
   const [activeTab, setActiveTab] = useState<"provider" | "manager">(
-    userRole === "service_provider" ? "provider" : "manager"
+    isWorkerRole(userRole) ? "provider" : "manager"
   );
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
@@ -34,7 +35,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
 
   // Determine which tasks to show based on role (memoized to prevent infinite useEffect loops)
   const relevantTasks = useMemo(() =>
-    userRole === "service_provider"
+    isWorkerRole(userRole)
       ? tasks.filter((t) => t.assigned_to === currentUserProfile?.id && t.status === "in_progress")
       : tasks.filter((t) => t.status === "in_progress" || (t.status === "completed" && t.assigned_category === "external")),
     [tasks, userRole, currentUserProfile?.id]
@@ -190,7 +191,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
       {selectedTask && !isLoading && (
         <>
           {/* Role-based content */}
-          {userRole === "service_provider" ? (
+          {isWorkerRole(userRole) ? (
             <ProviderReportForm
               task={selectedTask}
               taskReport={taskReport}

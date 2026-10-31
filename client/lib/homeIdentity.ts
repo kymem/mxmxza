@@ -1,4 +1,6 @@
-export type HomeRole = "guest" | "manager" | "service_provider";
+import type { AppRole } from "./roles";
+
+export type HomeRole = AppRole;
 
 export interface HomeIdentity {
   role: HomeRole;

@@ -26,13 +26,13 @@ import {
 } from "lucide-react";
 
 interface ServicesHomePageProps {
-  role?: "manager" | "service_provider";
+  role?: "manager" | "worker";
   displayName?: string;
 }
 
 const ServicesHomePage = ({
-  role = "service_provider",
-  displayName = role === "manager" ? "Manager" : "Service Provider",
+  role = "worker",
+  displayName = role === "manager" ? "Manager" : "Worker",
 }: ServicesHomePageProps) => {
   const [timeOfDay, setTimeOfDay] = useState("");
 
@@ -137,7 +137,7 @@ const ServicesHomePage = ({
             <p className="text-xl md:text-2xl mb-8 text-white/90 leading-relaxed">
               Empower your operations with intelligent task management, real-time 
               analytics, and comprehensive service delivery tools designed for 
-              property managers and service providers.
+              property managers and workers.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
