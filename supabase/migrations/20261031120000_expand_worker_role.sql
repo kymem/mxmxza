@@ -1,5 +1,37 @@
 begin;
 
+do $$
+declare
+  overload record;
+begin
+  for overload in
+    select p.oid::regprocedure as signature
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname in (
+         'approve_menu_access',
+         'approve_task_report_and_award_points',
+         'attach_task_hotel_organization',
+         'can_manage_hotel_menu',
+         'can_manage_menu',
+         'delete_my_service_provider_directory_profile',
+         'get_my_service_provider_directory_profile',
+         'get_service_provider_directory',
+         'handle_new_user',
+         'qualify_loyalty_referral',
+         'save_my_service_provider_directory_profile',
+         'service_provider_is_listed_for_hotel',
+         'submit_service_provider_review',
+         'submit_task_report_for_approval'
+       )
+       and pg_get_function_arguments(p.oid) like '%DEFAULT%'
+  loop
+    execute 'drop function ' || overload.signature;
+  end loop;
+end
+$$;
+
 alter table public.user_profiles drop constraint user_profiles_role_check;
 alter table public.user_profiles
   add constraint user_profiles_role_check
@@ -211,38 +243,6 @@ begin
   delete from public.service_provider_directory_profiles
    where profile_id = provider_profile_id;
 end;
-$$;
-
-do $$
-declare
-  overload record;
-begin
-  for overload in
-    select p.oid::regprocedure as signature
-      from pg_proc p
-      join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public'
-       and p.proname in (
-         'approve_menu_access',
-         'approve_task_report_and_award_points',
-         'attach_task_hotel_organization',
-         'can_manage_hotel_menu',
-         'can_manage_menu',
-         'delete_my_service_provider_directory_profile',
-         'get_my_service_provider_directory_profile',
-         'get_service_provider_directory',
-         'handle_new_user',
-         'qualify_loyalty_referral',
-         'save_my_service_provider_directory_profile',
-         'service_provider_is_listed_for_hotel',
-         'submit_service_provider_review',
-         'submit_task_report_for_approval'
-       )
-       and pg_get_function_arguments(p.oid) like '%DEFAULT%'
-  loop
-    execute 'drop function ' || overload.signature;
-  end loop;
-end
 $$;
 
 create or replace function public.qualify_loyalty_referral(
