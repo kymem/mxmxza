@@ -564,6 +564,37 @@ BEGIN
 END;
 $$;
 
+create or replace function public.get_my_service_provider_directory_profile()
+returns table (
+  is_listed boolean,
+  visibility_scope text,
+  organization_id uuid,
+  professional_summary text,
+  specialties text[],
+  years_experience integer
+)
+language plpgsql
+security definer
+stable
+set search_path = pg_catalog, public
+as $$
+begin
+  return query
+  select directory_profile.is_listed,
+         directory_profile.visibility_scope,
+         directory_profile.organization_id,
+         directory_profile.professional_summary,
+         directory_profile.specialties,
+         directory_profile.years_experience
+    from public.user_profiles profile
+    join public.service_provider_directory_profiles directory_profile
+      on directory_profile.profile_id = profile.id
+   where profile.user_id = auth.uid()
+     and profile.role in ('service_provider', 'worker')
+     and profile.service_category = 'external';
+end;
+$$;
+
 alter policy task_reports_insert on public.task_reports
   with check (
     provider_id = (
