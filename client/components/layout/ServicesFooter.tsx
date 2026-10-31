@@ -37,7 +37,7 @@ const ServicesFooter = () => {
             <p className="text-sm text-gray-300 leading-relaxed">
               Empower your service delivery with intelligent task management, 
               real-time analytics, and comprehensive operational tools designed 
-              for property managers and service providers.
+              for property managers and workers.
             </p>
             <div className="flex space-x-4">
               <Button

@@ -197,6 +197,35 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (organizationError) throw organizationError;
   if (contactError) throw contactError;
   if (linesError) throw linesError;
+  const isHotelInvoice = invoice.invoice_number.startsWith("HOTEL-");
+  const isVatInclusiveSale = /^(MENU|EVENT)-/.test(invoice.invoice_number);
+  const isMenuInvoice = invoice.invoice_number.startsWith("MENU-");
+  const menuCharges = isMenuInvoice
+    ? await client.from("menu_orders").select("service_fee,tip_amount").eq("books_invoice_id", invoice.id).maybeSingle()
+    : null;
+  if (menuCharges?.error) throw menuCharges.error;
+  const menuServiceFee = Number(menuCharges?.data?.service_fee ?? 0);
+  const menuTip = Number(menuCharges?.data?.tip_amount ?? 0);
+  let vatAmount: number | null = null;
+  let vatRatePercentage: number | null = null;
+  if (isVatInclusiveSale) {
+    const { data: vatRate, error: vatRateError } = await client.rpc("books_confirmed_invoice_vat_rate", {
+      target_organization_id: invoice.organization_id,
+      target_date: invoice.issue_date,
+    });
+    if (vatRateError) throw vatRateError;
+    if (vatRate !== null && vatRate !== undefined) {
+      const { data: minorUnits, error: minorUnitsError } = await client.rpc("checkout_currency_minor_units", {
+        target_currency: invoice.currency_code,
+      });
+      if (minorUnitsError) throw minorUnitsError;
+      const factor = 10 ** Number(minorUnits);
+      const gross = Number(invoice.subtotal) + Number(invoice.tax_amount) + menuServiceFee;
+      const net = Math.round((gross / (1 + Number(vatRate) / 100)) * factor) / factor;
+      vatAmount = Math.round((gross - net) * factor) / factor;
+      vatRatePercentage = Number(vatRate);
+    }
+  }
 
   const document = new PDFDocument({ margin: 50 });
   const chunks: Buffer[] = [];
@@ -214,20 +243,35 @@ async function createInvoicePdf(invoiceId: string): Promise<InvoiceDocument> {
   if (contact.email) document.fontSize(10).text(contact.email);
   if (contact.tax_id) document.fontSize(10).text(`Tax ID: ${contact.tax_id}`);
   if (invoice.buyer_tax_id) document.fontSize(10).text(`Buyer TIN / BRN / NIN: ${invoice.buyer_tax_id}`);
-  if (invoice.notes) document.fontSize(10).text(invoice.notes);
+  if (invoice.notes) document.fontSize(10).text(invoice.notes.replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/i, ""));
   document.moveDown();
   document.fontSize(11).text("Description").text("Amount", { align: "right" });
-  for (const line of lines || []) {
+  const menuTipLines = menuCharges?.data ? ["Tip"] : [];
+  for (const line of (lines || []).filter((line) => !menuTipLines.includes(line.description))) {
     document.fontSize(10).text(`${line.description} (${line.quantity} × ${line.unit_price})`).text(`${line.line_total} ${invoice.currency_code}`, { align: "right" });
   }
   document.moveDown();
-  document.text(`Taxable accommodation and services: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
-  document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
-  if (Number(invoice.other_charges) > 0) document.text(`Local Hotel Tax and other charges: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
+  if (!isVatInclusiveSale) {
+    document.text(`Subtotal: ${invoice.subtotal} ${invoice.currency_code}`, { align: "right" });
+    document.text(`VAT: ${invoice.tax_amount} ${invoice.currency_code}`, { align: "right" });
+  } else if (vatAmount === null) {
+    document.text(`Subtotal: ${Number(invoice.subtotal) + Number(invoice.tax_amount)} ${invoice.currency_code}`, { align: "right" });
+  }
+  if (menuCharges?.data) {
+    if (menuTip > 0) document.text(`Tip: ${menuTip} ${invoice.currency_code}`, { align: "right" });
+  } else if (!isMenuInvoice && Number(invoice.other_charges) > 0) {
+    const otherChargesLabel = isHotelInvoice ? "Local hotel tax" : "Service fees";
+    document.text(`${otherChargesLabel}: ${invoice.other_charges} ${invoice.currency_code}`, { align: "right" });
+  }
   document.fontSize(13).text(`Total: ${invoice.total_due} ${invoice.currency_code}`, { align: "right" });
+  if (vatAmount !== null && vatRatePercentage !== null) {
+    document.moveDown();
+    document.fontSize(11).text("VAT summary", { underline: true });
+    document.fontSize(10).text(`VAT at ${vatRatePercentage}%: ${vatAmount} ${invoice.currency_code}`);
+  }
   if (loyaltySummary) {
     document.moveDown();
-    document.fontSize(11).text("Hotel loyalty", { underline: true });
+    document.fontSize(11).text("Loyalty points", { underline: true });
     const loyaltyText = loyaltySummary.status === "posted"
       ? `Points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.`
       : loyaltySummary.status === "excluded"
@@ -247,7 +291,7 @@ async function sendBrevoEmail(recipient: string, subject: string, pdf: Buffer, f
       sender: { email: process.env.BREVO_SENDER_EMAIL || "billing-test@yourplatform.com", name: process.env.BREVO_SENDER_NAME || "Books" },
       to: [{ email: recipient }],
       subject,
-      htmlContent: `<p>Thank you. Your paid invoice is attached.</p>${loyaltySummary ? `<p>Hotel loyalty points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.</p>` : ""}`,
+      htmlContent: `<p>Thank you. Your paid invoice is attached.</p>${loyaltySummary ? `<p>Loyalty points earned on this purchase: ${loyaltySummary.pointsEarned}. Current balance: ${loyaltySummary.currentBalance}.</p>` : ""}`,
       attachment: [{ name: fileName.split("/").pop(), content: pdf.toString("base64") }],
     }),
   });
@@ -277,7 +321,7 @@ async function updateInvoice(client: ReturnType<typeof supabase>, invoiceId: str
   throw error;
 }
 
-const runtimeSecrets = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_WEBHOOK_SECRET", "B2_ENDPOINT", "B2_REGION", "B2_KEY_ID", "B2_APPLICATION_KEY", "B2_BUCKET_NAME", "B2_PUBLIC_URL", "BREVO_API_KEY", "BREVO_SENDER_EMAIL", "BREVO_SENDER_NAME"];
+const runtimeSecrets = ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_WEBHOOK_SECRET", "B2_KEY_ID", "B2_APPLICATION_KEY", "BREVO_API_KEY"];
 
 export const importBankCSV = onRequest({ region: "us-central1", timeoutSeconds: 540, memory: "1GiB", secrets: runtimeSecrets }, async (request, response) => {
   const { value, raw } = jsonBody(request);

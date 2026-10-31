@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AppRole, isWorkerRole } from "../lib/roles";
 import { Button } from "../components/ui/button";
 import { BillingTab } from "./components/BillingTab";
 import { supabase } from "../lib/supabase";
@@ -106,9 +107,9 @@ const emptyDirectoryForm: DirectoryForm = {
 };
 
 const fetchDirectoryListing = async (): Promise<{ listing: DirectoryListing | null; error: string | null }> => {
-  const { data, error } = await supabase.rpc("get_my_service_provider_directory_profile");
+  const { data, error } = await supabase.rpc("get_my_worker_directory_profile");
   if (error) {
-    console.error("Unable to load provider directory profile:", error);
+    console.error("Unable to load worker directory profile:", error);
     return { listing: null, error: error.message };
   }
   const row = data?.[0];
@@ -135,8 +136,8 @@ const ServicesProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPerformanceDetails, setShowPerformanceDetails] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [userRole, setUserRole] = useState<'guest' | 'manager' | 'service_provider' | null>(null);
-  const [isExternalServiceProvider, setIsExternalServiceProvider] = useState(false);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
+  const [isExternalWorker, setIsExternalWorker] = useState(false);
   const [isDirectorySaving, setIsDirectorySaving] = useState(false);
   const [isDirectoryRemoving, setIsDirectoryRemoving] = useState(false);
   const [directoryListing, setDirectoryListing] = useState<DirectoryListing | null>(null);
@@ -263,10 +264,10 @@ const ServicesProfilePage = () => {
         }
 
         const resolvedRole = resolvedProfile?.role ||
-          (metadata.role === "manager" ? "manager" : "service_provider");
+          (metadata.role === "manager" ? "manager" : "worker");
         setUserRole(resolvedRole);
-        setIsExternalServiceProvider(resolvedRole === "service_provider" && resolvedProfile?.service_category === "external");
-        if (resolvedRole === "service_provider" && resolvedProfile?.service_category === "external") {
+        setIsExternalWorker(isWorkerRole(resolvedRole) && resolvedProfile?.service_category === "external");
+        if (isWorkerRole(resolvedRole) && resolvedProfile?.service_category === "external") {
           const { listing } = await fetchDirectoryListing();
           setDirectoryListing(listing);
         }
@@ -327,7 +328,7 @@ const ServicesProfilePage = () => {
     }
     setIsDirectorySaving(true);
     setDirectoryError("");
-    const { error } = await supabase.rpc("save_my_service_provider_directory_profile", {
+    const { error } = await supabase.rpc("save_my_worker_directory_profile", {
       target_is_listed: directoryProfile.isListed,
       target_visibility_scope: directoryProfile.visibilityScope,
       target_organization_id: directoryProfile.visibilityScope === "hotel" ? tenant?.organizationId ?? null : null,
@@ -364,7 +365,7 @@ const ServicesProfilePage = () => {
   const removeDirectoryProfile = async () => {
     setIsDirectoryRemoving(true);
     setDirectoryError("");
-    const { error } = await supabase.rpc("delete_my_service_provider_directory_profile");
+    const { error } = await supabase.rpc("delete_my_worker_directory_profile");
     setIsDirectoryRemoving(false);
 
     if (error) {
@@ -519,7 +520,7 @@ const ServicesProfilePage = () => {
           <div className="flex items-center justify-center mb-4">
             <Briefcase className="h-8 w-8 text-sheraton-gold mr-2" />
             <Badge className="bg-sheraton-gold text-sheraton-navy px-4 py-2">
-              {userRole === 'manager' ? 'Property Manager' : userRole === 'guest' ? 'Guest Member' : 'Service Partner'}
+              {userRole === 'manager' ? 'Property Manager' : userRole === 'guest' ? 'Guest Member' : 'Worker'}
             </Badge>
           </div>
           {userData.firstName && (
@@ -803,7 +804,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Dashboard
+              // Worker Dashboard
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Service Summary */}
@@ -1088,7 +1089,7 @@ const ServicesProfilePage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Service Provider Performance */}
+                  {/* Worker Performance */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1102,14 +1103,14 @@ const ServicesProfilePage = () => {
                           { name: 'John Smith', rating: 4.8, tasks: 42 },
                           { name: 'Sarah Johnson', rating: 4.6, tasks: 38 },
                           { name: 'Mike Brown', rating: 4.9, tasks: 45 },
-                        ].map((provider, index) => (
+                        ].map((worker, index) => (
                           <div key={index} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-medium text-sm">{provider.name}</h4>
-                              <Badge variant="outline">{provider.rating} ⭐</Badge>
+                              <h4 className="font-medium text-sm">{worker.name}</h4>
+                              <Badge variant="outline">{worker.rating} ⭐</Badge>
                             </div>
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>{provider.tasks} tasks completed</span>
+                              <span>{worker.tasks} tasks completed</span>
                               <span>Top Performer</span>
                             </div>
                           </div>
@@ -1119,7 +1120,7 @@ const ServicesProfilePage = () => {
                       <Separator />
 
                       <Button variant="outline" className="w-full">
-                        View All Providers
+                        View All Workers
                       </Button>
                     </CardContent>
                   </Card>
@@ -1160,7 +1161,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Performance
+              // Worker Performance
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Performance Metrics */}
@@ -1471,12 +1472,12 @@ const ServicesProfilePage = () => {
                 </div>
               </CardContent>
             </Card>
-            {isExternalServiceProvider && (
+            {isExternalWorker && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="h-5 w-5 text-sheraton-gold" />
-                    Service Provider Directory
+                    Worker Directory
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">Choose whether hotel managers can discover your services. Your private reports and work media are not shared in the directory.</p>
                 </CardHeader>
@@ -1541,23 +1542,23 @@ const ServicesProfilePage = () => {
                   )}
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-1">
-                      <Label htmlFor="provider-directory-listed">List my provider profile</Label>
+                      <Label htmlFor="worker-directory-listed">List my worker profile</Label>
                       <p className="text-sm text-muted-foreground">You can turn this off at any time.</p>
                     </div>
                     <Switch
-                      id="provider-directory-listed"
+                      id="worker-directory-listed"
                       checked={directoryProfile.isListed}
                       onCheckedChange={(isListed) => setDirectoryProfile((profile) => ({ ...profile, isListed }))}
                     />
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="provider-visibility">Visible to</Label>
+                      <Label htmlFor="worker-visibility">Visible to</Label>
                       <Select
                         value={directoryProfile.visibilityScope}
                         onValueChange={(visibilityScope: "ecosystem" | "hotel") => setDirectoryProfile((profile) => ({ ...profile, visibilityScope }))}
                       >
-                        <SelectTrigger id="provider-visibility"><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="worker-visibility"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ecosystem">Managers across all hotels</SelectItem>
                           <SelectItem value="hotel" disabled={!tenant?.organizationId}>Managers at {tenant?.name || "this hotel"}</SelectItem>
@@ -1566,9 +1567,9 @@ const ServicesProfilePage = () => {
                       <p className="text-xs text-muted-foreground">Only authorized hotel managers can browse listed profiles.</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="provider-years-experience">Years of experience</Label>
+                      <Label htmlFor="worker-years-experience">Years of experience</Label>
                       <Input
-                        id="provider-years-experience"
+                        id="worker-years-experience"
                         type="number"
                         min="0"
                         max="80"
@@ -1577,9 +1578,9 @@ const ServicesProfilePage = () => {
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="provider-specialties">Specialties</Label>
+                      <Label htmlFor="worker-specialties">Specialties</Label>
                       <Input
-                        id="provider-specialties"
+                        id="worker-specialties"
                         value={directoryProfile.specialties}
                         onChange={(event) => setDirectoryProfile((profile) => ({ ...profile, specialties: event.target.value }))}
                         placeholder="HVAC, plumbing, electrical"
@@ -1587,9 +1588,9 @@ const ServicesProfilePage = () => {
                       <p className="text-xs text-muted-foreground">Separate specialties with commas; up to 12.</p>
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="provider-summary">Professional summary</Label>
+                      <Label htmlFor="worker-summary">Professional summary</Label>
                       <Textarea
-                        id="provider-summary"
+                        id="worker-summary"
                         value={directoryProfile.professionalSummary}
                         onChange={(event) => setDirectoryProfile((profile) => ({ ...profile, professionalSummary: event.target.value }))}
                         maxLength={1000}
@@ -1636,9 +1637,9 @@ const ServicesProfilePage = () => {
                           status: 'completed',
                         },
                         {
-                          title: 'Service Provider Performance Review',
+                          title: 'Worker Performance Review',
                           date: '2024-01-10',
-                          providers: 5,
+                          workers: 5,
                           avgRating: 4.7,
                           status: 'completed',
                         },
@@ -1708,7 +1709,7 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Activities
+              // Worker Activities
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1868,7 +1869,7 @@ const ServicesProfilePage = () => {
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="newsletter">Provider Updates</Label>
+                          <Label htmlFor="newsletter">Worker Updates</Label>
                           <Switch
                             id="newsletter"
                             checked={
@@ -1880,7 +1881,7 @@ const ServicesProfilePage = () => {
                     </div>
                   </div>
                 ) : (
-                  // Service Provider Preferences
+                  // Worker Preferences
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h3 className="font-semibold">Service Preferences</h3>
@@ -2093,7 +2094,7 @@ const ServicesProfilePage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-sheraton-gold" />
-                      Refer Service Providers & Property Managers
+                      Refer Workers & Property Managers
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -2101,7 +2102,7 @@ const ServicesProfilePage = () => {
                       <Gift className="h-12 w-12 mx-auto mb-4 text-sheraton-gold" />
                       <h3 className="text-xl font-bold mb-2">Grow Your Network</h3>
                       <p className="text-muted-foreground mb-4">
-                        Refer qualified service providers or property managers to earn rewards and build your trusted network
+                        Refer qualified workers or property managers to earn rewards and build your trusted network
                       </p>
                       <div className="flex items-center justify-center gap-2 p-3 bg-white rounded-lg border">
                         <code className="font-mono text-lg">
@@ -2122,7 +2123,7 @@ const ServicesProfilePage = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <Users className="h-4 w-4 text-sheraton-gold" />
-                            Refer Service Providers
+                            Refer Workers
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2131,7 +2132,7 @@ const ServicesProfilePage = () => {
                               {rewardsSummary?.policy.referrerBonusPoints ?? 250} points
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              After the referred provider completes a manager-approved task
+                              After the referred worker completes a manager-approved task
                             </p>
                           </div>
                           <ul className="space-y-2 text-sm">
@@ -2227,13 +2228,13 @@ const ServicesProfilePage = () => {
                 </Card>
               </>
             ) : (
-              // Service Provider Referrals
+              // Worker Referrals
               <>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-sheraton-gold" />
-                      Refer Service Providers & Property Managers
+                      Refer Workers & Property Managers
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -2241,7 +2242,7 @@ const ServicesProfilePage = () => {
                       <Gift className="h-12 w-12 mx-auto mb-4 text-sheraton-gold" />
                       <h3 className="text-xl font-bold mb-2">Grow Your Network & Earn</h3>
                       <p className="text-muted-foreground mb-4">
-                        Refer qualified service providers or property managers and earn rewards
+                        Refer qualified workers or property managers and earn rewards
                       </p>
                       <div className="flex items-center justify-center gap-2 p-3 bg-white rounded-lg border">
                         <code className="font-mono text-lg">
@@ -2262,7 +2263,7 @@ const ServicesProfilePage = () => {
                         <CardHeader className="pb-3">
                           <CardTitle className="text-base flex items-center gap-2">
                             <Users className="h-4 w-4 text-sheraton-gold" />
-                            Refer Service Providers
+                            Refer Workers
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2271,7 +2272,7 @@ const ServicesProfilePage = () => {
                               {rewardsSummary?.policy.referrerBonusPoints ?? 250} Points
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              After the referred provider's first approved task
+                              After the referred worker's first approved task
                             </p>
                           </div>
                           <ul className="space-y-2 text-sm">

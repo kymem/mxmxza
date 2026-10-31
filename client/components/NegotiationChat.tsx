@@ -40,8 +40,8 @@ interface NegotiationChatProps {
   proposalId: string;
   taskId: string;
   currentUserId: string; // auth.users.id
-  currentUserProfileId: string; // user_profiles.id (required for todo_list.provider_id)
-  currentUserRole: "manager" | "service_provider";
+  currentUserProfileId: string; // user_profiles.id (required for todo_list.worker_id)
+  currentUserRole: "manager" | "worker";
   otherPartyName: string;
   initialProposal: TaskProposal;
   task: Task;
@@ -262,15 +262,15 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
 
       if (proposalError) throw proposalError;
 
-      // Determine provider_id based on role
-      // For service_provider: use currentUserProfileId
-      // For manager: use initialProposal.provider_id (the service provider's profile ID)
-      const providerId = currentUserRole === "service_provider"
+      // Determine worker_id based on role
+      // For worker: use currentUserProfileId
+      // For manager: use initialProposal.worker_id (the worker's profile ID)
+      const workerId = currentUserRole === "worker"
         ? currentUserProfileId
-        : initialProposal.provider_id;
+        : initialProposal.worker_id;
 
-      if (!providerId) {
-        throw new Error("Provider ID is missing. Cannot create task.");
+      if (!workerId) {
+        throw new Error("Worker ID is missing. Cannot create task.");
       }
 
       // Check if a todo already exists for this task to prevent duplicates
@@ -279,7 +279,7 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
         .from("todo_list")
         .select("id")
         .eq("task_id", taskId)
-        .eq("provider_id", providerId);
+        .eq("worker_id", workerId);
 
       let todoData;
       let todoError;
@@ -313,13 +313,13 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
         todoError = updateError;
       } else {
         // Create new todo with ALL agreed terms
-        // CRITICAL: provider_id MUST be from user_profiles.id, NOT auth.users.id
+        // CRITICAL: worker_id MUST be from user_profiles.id, NOT auth.users.id
         const { data: newTodo, error: createError } = await supabase
           .from("todo_list")
           .insert([
             {
               task_id: taskId,
-              provider_id: providerId, // This MUST be user_profiles.id
+              worker_id: workerId, // This MUST be user_profiles.id
               status: "pending",
               title: task.title,
               description: task.description,
@@ -662,7 +662,7 @@ const NegotiationChat: React.FC<NegotiationChatProps> = ({
                     <p className="text-xs font-semibold mb-1 opacity-75">
                       {message.sender_role === "manager"
                         ? "Manager"
-                        : "Service Provider"}
+                        : "Worker"}
                     </p>
                     <p className="text-sm break-words">{message.message_text}</p>
 

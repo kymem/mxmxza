@@ -23,7 +23,7 @@ import { supabase, TaskProposal, Task } from "../lib/supabase";
 import { toast } from "../hooks/use-toast";
 import NegotiationChat from "./NegotiationChat";
 
-interface ServiceProviderProposalReviewProps {
+interface WorkerProposalReviewProps {
   proposal: TaskProposal | null;
   taskTitle: string;
   managerName: string;
@@ -35,7 +35,7 @@ interface ServiceProviderProposalReviewProps {
 
 type ProposalAction = "accept" | "decline" | "counter" | "chat";
 
-export const ServiceProviderProposalReview: React.FC<ServiceProviderProposalReviewProps> = ({
+export const WorkerProposalReview: React.FC<WorkerProposalReviewProps> = ({
   proposal,
   taskTitle,
   managerName,
@@ -512,7 +512,7 @@ export const ServiceProviderProposalReview: React.FC<ServiceProviderProposalRevi
                 taskId={proposal.task_id}
                 currentUserId={currentUserId}
                 currentUserProfileId={currentUserProfileId}
-                currentUserRole="service_provider"
+                currentUserRole="worker"
                 otherPartyName={managerName}
                 initialProposal={proposal}
                 task={task}
@@ -529,4 +529,4 @@ export const ServiceProviderProposalReview: React.FC<ServiceProviderProposalRevi
   );
 };
 
-export default ServiceProviderProposalReview;
+export default WorkerProposalReview;

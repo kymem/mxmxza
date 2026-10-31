@@ -63,7 +63,7 @@ export type EvidenceType = 'photo' | 'video' | 'document' | 'signature';
 // ============================================================================
 
 /**
- * Service provider's progress report on an in-progress task
+ * Worker's progress report on an in-progress task
  * One report per task, updated as work progresses
  */
 export interface TaskReport {
@@ -96,7 +96,7 @@ export interface TaskReportChecklistItem {
 // ============================================================================
 
 /**
- * Individual evidence submission from service provider
+ * Individual evidence submission from worker
  * Can be a photo, video, document, or signature
  */
 export interface TaskEvidenceSubmission {
@@ -118,7 +118,7 @@ export interface TaskEvidenceSubmission {
 // ============================================================================
 
 /**
- * Issues or blockers raised by service provider
+ * Issues or blockers raised by worker
  * When created, task is flagged for manager attention
  */
 export interface TaskIssue {
@@ -259,7 +259,7 @@ export interface NewTaskWithChecklistForm {
   description: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   category: 'operations' | 'service' | 'training' | 'maintenance';
-  assigned_to: string; // user_profiles.id of service provider
+  assigned_to: string; // user_profiles.id of worker
   assigned_category: 'internal' | 'external';
   due_date?: string;
   estimated_time?: string;

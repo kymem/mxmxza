@@ -18,8 +18,10 @@ import {
   DollarSign,
 } from "lucide-react";
 
+import { AppRole, isWorkerRole } from '../../lib/roles'
+
 interface BillingTabProps {
-  userRole: 'manager' | 'service_provider' | null;
+  userRole: AppRole | null;
   userData: {
     firstName: string;
     lastName: string;
@@ -51,7 +53,7 @@ export const BillingTab = ({ userRole, userData }: BillingTabProps) => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Plan Type</span>
                   <Badge className="bg-sheraton-gold text-black">
-                    {userRole === 'manager' ? 'Professional' : 'Service Provider'}
+                    {userRole === 'manager' ? 'Professional' : 'Worker'}
                   </Badge>
                 </div>
                 <Separator />
@@ -64,7 +66,7 @@ export const BillingTab = ({ userRole, userData }: BillingTabProps) => {
                       {userRole === 'manager' ? '$99/mo' : '$49/mo'}
                     </span>
                   </div>
-                  {userRole === 'service_provider' && (
+                  {isWorkerRole(userRole) && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
                         Commission Rate
@@ -158,7 +160,7 @@ export const BillingTab = ({ userRole, userData }: BillingTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Payment Methods - for both manager and service provider */}
+      {/* Payment Methods - for both manager and worker */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -189,7 +191,7 @@ export const BillingTab = ({ userRole, userData }: BillingTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Payout Methods - for both manager and service provider */}
+      {/* Payout Methods - for both manager and worker */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

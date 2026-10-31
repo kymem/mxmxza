@@ -14,7 +14,7 @@
 --
 -- SELECT id, user_id, email, first_name, last_name, role 
 -- FROM user_profiles 
--- WHERE role = 'service_provider' 
+-- WHERE role = 'worker' 
 -- LIMIT 1;
 --
 -- 2. Find a task to use:
@@ -38,8 +38,8 @@ DECLARE
  -- Get these by running the queries above first
  v_manager_profile_id UUID;
  v_manager_user_id UUID;
- v_provider_profile_id UUID;
- v_provider_user_id UUID;
+ v_worker_profile_id UUID;
+ v_worker_user_id UUID;
  v_task_id UUID;
  v_checklist_id UUID;
  v_report_id UUID;
@@ -63,22 +63,22 @@ BEGIN
  
  RAISE NOTICE 'Found manager: % (user: %)', v_manager_profile_id, v_manager_user_id;
  
- -- Get service provider IDs
- SELECT id, user_id INTO v_provider_profile_id, v_provider_user_id
+ -- Get worker IDs
+ SELECT id, user_id INTO v_worker_profile_id, v_worker_user_id
  FROM user_profiles 
- WHERE role = 'service_provider' 
+ WHERE role = 'worker' 
  LIMIT 1;
  
- IF v_provider_profile_id IS NULL THEN
- RAISE EXCEPTION 'No service provider profile found. Create a service provider user first.';
+ IF v_worker_profile_id IS NULL THEN
+ RAISE EXCEPTION 'No worker profile found. Create a worker user first.';
  END IF;
  
- RAISE NOTICE 'Found provider: % (user: %)', v_provider_profile_id, v_provider_user_id;
+ RAISE NOTICE 'Found provider: % (user: %)', v_worker_profile_id, v_worker_user_id;
  
  -- Get an existing task or create one
  SELECT id INTO v_task_id 
  FROM tasks 
- WHERE assigned_to = v_provider_profile_id 
+ WHERE assigned_to = v_worker_profile_id 
  AND status IN ('todo', 'in_progress')
  LIMIT 1;
  
@@ -106,8 +106,8 @@ BEGIN
  'high',
  'in_progress',
  'service',
- v_provider_profile_id,
- (SELECT first_name || ' ' || last_name FROM user_profiles WHERE id = v_provider_profile_id),
+ v_worker_profile_id,
+ (SELECT first_name || ' ' || last_name FROM user_profiles WHERE id = v_worker_profile_id),
  'internal',
  CURRENT_DATE + INTERVAL '7 days',
  '16-20 hours',
@@ -217,7 +217,7 @@ BEGIN
  ) THEN
  INSERT INTO task_reports (
  task_id,
- provider_id,
+ worker_id,
  status,
  description,
  percentage_complete,
@@ -225,11 +225,11 @@ BEGIN
  )
  VALUES (
  v_task_id,
- v_provider_profile_id,
+ v_worker_profile_id,
  'in_progress',
  'Day 1: Completed wall preparation (patching, sanding). Walls smooth and ready for paint. Day 2: Applied base coat to all walls. Color looks excellent. Day 3: Finishing second coat now.',
  35,
- v_provider_user_id
+ v_worker_user_id
  )
  RETURNING id INTO v_report_id;
  
@@ -264,7 +264,7 @@ BEGIN
  ) THEN
  INSERT INTO task_issues (
  task_id,
- provider_id,
+ worker_id,
  title,
  description,
  severity,
@@ -272,7 +272,7 @@ BEGIN
  )
  VALUES (
  v_task_id,
- v_provider_profile_id,
+ v_worker_profile_id,
  'Delayed marble tile delivery',
  'Custom marble tiles delayed by 1-2 days. Will push flooring installation back. Requesting timeline adjustment.',
  'high',
@@ -293,7 +293,7 @@ BEGIN
  RAISE NOTICE 'Task ID: %', v_task_id;
  RAISE NOTICE 'Checklist ID: %', v_checklist_id;
  RAISE NOTICE 'Manager: %', v_manager_profile_id;
- RAISE NOTICE 'Service Provider: %', v_provider_profile_id;
+ RAISE NOTICE 'Worker: %', v_worker_profile_id;
  RAISE NOTICE '';
  RAISE NOTICE 'Data includes:';
  RAISE NOTICE '1. Checklist with 8 items';

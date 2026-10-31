@@ -12,6 +12,7 @@ import {
   NavigationMenuTrigger,
 } from "../ui/navigation-menu";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { AppRole, isWorkerRole } from "../../lib/roles";
 import {
   Popover,
   PopoverContent,
@@ -52,6 +53,11 @@ import {
   clearCachedHomeIdentity,
   getCachedHomeIdentity,
 } from "../../lib/homeIdentity";
+
+const resolveHeaderRole = (value: string | null | undefined): AppRole | null => {
+  if (value === "manager") return "manager";
+  return isWorkerRole(value) ? "worker" : null;
+};
 
 const Header = () => {
   const { tenant } = useHotelTenant();
@@ -118,13 +124,9 @@ const Header = () => {
           .eq("user_id", user.id)
           .maybeSingle();
         const cachedRole = getCachedHomeIdentity()?.role;
-        const role = profile?.role === "manager" || profile?.role === "service_provider"
-          ? profile.role
-          : cachedRole === "manager" || cachedRole === "service_provider"
-            ? cachedRole
-            : "guest";
+        const role: AppRole = resolveHeaderRole(profile?.role) ?? resolveHeaderRole(cachedRole) ?? "guest";
         const canManage = role === "manager" ||
-          (role === "service_provider" &&
+          (role === "worker" &&
             profile?.menu_access_approved === true &&
             (profile?.menu_access_role === "chef" || profile?.menu_access_role === "food_beverage_manager"));
         setCanManageMenu(canManage);
@@ -133,8 +135,8 @@ const Header = () => {
           .join(" ") ||
           (role === "manager"
             ? "Manager"
-            : role === "service_provider"
-              ? "Service Provider"
+            : role === "worker"
+              ? "Worker"
               : "Special Guest");
         cacheHomeIdentity({ role, displayName });
 

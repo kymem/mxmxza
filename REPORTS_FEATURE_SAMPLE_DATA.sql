@@ -14,7 +14,7 @@
 --
 -- SELECT id, user_id, email, first_name, last_name, role 
 -- FROM user_profiles 
--- WHERE role = 'service_provider' 
+-- WHERE role = 'worker' 
 -- LIMIT 1;
 --
 -- SELECT id, title, description, status, budget, created_by
@@ -32,15 +32,15 @@
 -- CUSTOMIZE THESE VALUES with real IDs from your database:
 
 -- Scenario: John Smith (Manager) created a Room Renovation task assigned to 
--- Maria Rodriguez (Service Provider)
+-- Maria Rodriguez (Worker)
 
 DO $$
 DECLARE
   -- REPLACE THESE WITH ACTUAL IDs FROM YOUR DATABASE
   v_manager_profile_id UUID := (SELECT id FROM user_profiles WHERE role = 'manager' LIMIT 1);
   v_manager_user_id UUID := (SELECT user_id FROM user_profiles WHERE role = 'manager' LIMIT 1);
-  v_provider_profile_id UUID := (SELECT id FROM user_profiles WHERE role = 'service_provider' LIMIT 1);
-  v_provider_user_id UUID := (SELECT user_id FROM user_profiles WHERE role = 'service_provider' LIMIT 1);
+  v_worker_profile_id UUID := (SELECT id FROM user_profiles WHERE role = 'worker' LIMIT 1);
+  v_worker_user_id UUID := (SELECT user_id FROM user_profiles WHERE role = 'worker' LIMIT 1);
   v_task_id UUID;
   v_checklist_id UUID;
   v_report_id UUID;
@@ -52,8 +52,8 @@ BEGIN
     RAISE EXCEPTION 'No manager profile found. Create a manager user first.';
   END IF;
   
-  IF v_provider_profile_id IS NULL THEN
-    RAISE EXCEPTION 'No service provider profile found. Create a service provider user first.';
+  IF v_worker_profile_id IS NULL THEN
+    RAISE EXCEPTION 'No worker profile found. Create a worker user first.';
   END IF;
 
   -- ========================================================================
@@ -62,7 +62,7 @@ BEGIN
   
   -- Use existing task or create new one
   SELECT id INTO v_task_id FROM tasks 
-  WHERE assigned_to = v_provider_profile_id AND status = 'todo' 
+  WHERE assigned_to = v_worker_profile_id AND status = 'todo' 
   LIMIT 1;
   
   IF v_task_id IS NULL THEN
@@ -89,8 +89,8 @@ BEGIN
       'high',
       'in_progress',
       'service',
-      v_provider_profile_id,
-      (SELECT first_name || ' ' || last_name FROM user_profiles WHERE id = v_provider_profile_id),
+      v_worker_profile_id,
+      (SELECT first_name || ' ' || last_name FROM user_profiles WHERE id = v_worker_profile_id),
       'internal',
       CURRENT_DATE + INTERVAL '7 days',
       '16-20 hours',
@@ -171,11 +171,11 @@ BEGIN
   )
   VALUES (
     v_task_id,
-    v_provider_profile_id,
+    v_worker_profile_id,
     'in_progress',
     'Day 1: Completed wall preparation (patching, sanding). Walls are now smooth and ready for painting. Day 2: Applied base coat of paint to all walls. Color looks great. Day 3: Finishing second coat now.',
     35,
-    v_provider_user_id
+    v_worker_user_id
   )
   RETURNING id INTO v_report_id;
   
@@ -224,7 +224,7 @@ BEGIN
   )
   SELECT
     v_task_id,
-    v_provider_profile_id,
+    v_worker_profile_id,
     'photo',
     a.id,
     'Photo of wall preparation - all patching and sanding complete',
@@ -232,7 +232,7 @@ BEGIN
     CURRENT_TIMESTAMP - INTERVAL '1 days',
     v_manager_user_id
   FROM attachments a
-  WHERE a.user_id = v_provider_user_id
+  WHERE a.user_id = v_worker_user_id
   AND a.file_type = 'image'
   LIMIT 1;
 
@@ -252,7 +252,7 @@ BEGIN
   )
   VALUES (
     v_task_id,
-    v_provider_profile_id,
+    v_worker_profile_id,
     'Delayed marble tile delivery',
     'The custom marble tiles were supposed to arrive yesterday but carrier shows delivery delayed to tomorrow. This will push the flooring installation back by 1-2 days. Requesting timeline adjustment.',
     'high',
@@ -276,11 +276,11 @@ BEGIN
   )
   VALUES (
     v_task_id,
-    v_provider_profile_id,
+    v_worker_profile_id,
     'completed_pending_approval',
     'All work is now complete! Both walls are painted with perfect finish, all lighting fixtures installed and tested working properly, marble flooring installed with sealed grout. Room cleaned and ready for final inspection. Awaiting manager approval.',
     100,
-    v_provider_user_id
+    v_worker_user_id
   )
   RETURNING id INTO v_report_id;
 
@@ -309,7 +309,7 @@ BEGIN
   RAISE NOTICE '========== SAMPLE DATA CREATED ==========';
   RAISE NOTICE 'Task ID: %', v_task_id;
   RAISE NOTICE 'Manager: %', v_manager_profile_id;
-  RAISE NOTICE 'Service Provider: %', v_provider_profile_id;
+  RAISE NOTICE 'Worker: %', v_worker_profile_id;
   RAISE NOTICE '';
   RAISE NOTICE 'Sample Scenario:';
   RAISE NOTICE '1. Task created with 8-item checklist';
@@ -337,7 +337,7 @@ END $$;
 DO $$
 DECLARE
   v_manager_id UUID := (SELECT user_id FROM user_profiles WHERE role = 'manager' LIMIT 1);
-  v_provider_id UUID := (SELECT id FROM user_profiles WHERE role = 'service_provider' LIMIT 1);
+  v_worker_id UUID := (SELECT id FROM user_profiles WHERE role = 'worker' LIMIT 1);
   v_task_id UUID;
 BEGIN
 
@@ -350,7 +350,7 @@ BEGIN
     'medium',
     'in_progress',
     'maintenance',
-    v_provider_id,
+    v_worker_id,
     'internal',
     CURRENT_DATE + INTERVAL '3 days',
     800.00,
@@ -362,11 +362,11 @@ BEGIN
     percentage_complete, last_updated_by)
   VALUES (
     v_task_id,
-    v_provider_id,
+    v_worker_id,
     'in_progress',
     'Just started. Shut off water supply and removed old faucet.',
     10,
-    (SELECT user_id FROM user_profiles WHERE id = v_provider_id)
+    (SELECT user_id FROM user_profiles WHERE id = v_worker_id)
   );
 
   -- SCENARIO 3: Task with critical issue
@@ -378,7 +378,7 @@ BEGIN
     'urgent',
     'in_progress',
     'maintenance',
-    v_provider_id,
+    v_worker_id,
     'external',
     CURRENT_DATE + INTERVAL '1 day',
     1500.00,
@@ -390,7 +390,7 @@ BEGIN
     severity, status)
   VALUES (
     v_task_id,
-    v_provider_id,
+    v_worker_id,
     'Compressor unit failure - needs replacement',
     'The compressor motor has failed and cannot be repaired. Full unit replacement needed but requires part special order (3-5 days). Estimated cost increase: $500.',
     'critical',

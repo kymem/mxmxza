@@ -6,6 +6,7 @@ import { toast } from "../hooks/use-toast";
 import { FileAttachment } from "../components/FileUploadZone";
 import { useFileUpload } from "../hooks/useFileUpload";
 import { useHotelTenant } from "../lib/hotelTenant";
+import { AppRole, isWorkerRole } from "../lib/roles";
 import TaskResponseModal from "../components/TaskResponseModal";
 
 // Import refactored sub-components
@@ -83,7 +84,7 @@ const TasksPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
-  const [userRole, setUserRole] = useState<"guest" | "manager" | "service_provider" | null>(null);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [internalStaff, setInternalStaff] = useState<any[]>([]);
   const [externalVendors, setExternalVendors] = useState<any[]>([]);
 
@@ -109,11 +110,11 @@ const TasksPage: React.FC = () => {
 
   // ========== LOAD TODOS ==========
   useEffect(() => {
-    if (currentUserProfile && userRole === "service_provider") {
+    if (currentUserProfile && isWorkerRole(userRole)) {
       supabase
         .from("todo_list")
         .select("*")
-        .eq("provider_id", currentUserProfile.id)
+        .eq("worker_id", currentUserProfile.id)
         .order("created_at", { ascending: false })
         .then(({ data }) => setTodoItems(data || []));
     }
@@ -266,7 +267,7 @@ const TasksPage: React.FC = () => {
 
     // Subscribe to todo list changes
     let todosSubscription: any = null;
-    if (currentUserProfile && userRole === "service_provider") {
+    if (currentUserProfile && isWorkerRole(userRole)) {
       todosSubscription = supabase
         .channel(`todo_list_${currentUserProfile.id}`)
         .on(
@@ -275,13 +276,13 @@ const TasksPage: React.FC = () => {
             event: "*",
             schema: "public",
             table: "todo_list",
-            filter: `provider_id=eq.${currentUserProfile.id}`,
+            filter: `worker_id=eq.${currentUserProfile.id}`,
           },
           () => {
             supabase
               .from("todo_list")
               .select("*")
-              .eq("provider_id", currentUserProfile.id)
+              .eq("worker_id", currentUserProfile.id)
               .order("created_at", { ascending: false })
               .then(({ data }) => setTodoItems(data || []));
           }
@@ -329,7 +330,7 @@ const TasksPage: React.FC = () => {
           if (fetchedProfileData) {
             profileData = fetchedProfileData;
             setCurrentUserProfile(fetchedProfileData);
-            setUserRole(fetchedProfileData.role as "guest" | "manager" | "service_provider");
+            setUserRole(fetchedProfileData.role as AppRole);
           }
         }
 
@@ -343,21 +344,21 @@ const TasksPage: React.FC = () => {
         setInternalStaff(internalData || []);
 
         // Load external vendors
-        const { data: externalData, error: externalError } = await supabase.rpc("get_service_provider_directory", {
+        const { data: externalData, error: externalError } = await supabase.rpc("get_worker_directory", {
           target_organization_id: tenant.organizationId,
         });
 
         if (externalError) {
-          console.error("Unable to load opted-in providers:", externalError);
+          console.error("Unable to load opted-in workers:", externalError);
           setExternalVendors([]);
         } else {
-          setExternalVendors((externalData || []).map((provider: any) => ({
-            id: provider.profile_id,
+          setExternalVendors((externalData || []).map((worker: any) => ({
+            id: worker.profile_id,
             email: "",
-            first_name: provider.full_name || "Service provider",
+            first_name: worker.full_name || "Worker",
             last_name: "",
-            service_type: provider.service_type || "External provider",
-            display_name: provider.full_name || "Service provider",
+            service_type: worker.service_type || "External vendor",
+            display_name: worker.full_name || "Worker",
           })));
         }
 
@@ -409,11 +410,11 @@ const TasksPage: React.FC = () => {
         setTaskProposals(proposalsData || []);
 
         // Load todo list items
-        if (user && profileData && profileData.role === "service_provider") {
+        if (user && profileData && isWorkerRole(profileData.role)) {
           const { data: todosData, error: todosError } = await supabase
             .from("todo_list")
             .select("*")
-            .eq("provider_id", profileData.id)
+            .eq("worker_id", profileData.id)
             .order("created_at", { ascending: false });
 
           // Todos error handled - may not have todos yet
@@ -456,9 +457,9 @@ const TasksPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const providerId = new URLSearchParams(location.search).get("providerId");
-    if (providerId && externalVendors.some((provider) => provider.id === providerId)) {
-      setFormData((prev) => ({ ...prev, assignmentType: "external", assignee: providerId }));
+    const workerId = new URLSearchParams(location.search).get("workerId");
+    if (workerId && externalVendors.some((worker) => worker.id === workerId)) {
+      setFormData((prev) => ({ ...prev, assignmentType: "external", assignee: workerId }));
     }
   }, [location.search, externalVendors]);
 
@@ -791,7 +792,7 @@ const TasksPage: React.FC = () => {
                   supabase
                     .from("todo_list")
                     .select("*")
-                    .eq("provider_id", currentUserProfile.id)
+                    .eq("worker_id", currentUserProfile.id)
                     .order("created_at", { ascending: false })
                     .then(({ data }) => setTodoItems(data || []));
                 }
@@ -833,8 +834,8 @@ const TasksPage: React.FC = () => {
           <TaskResponseModal
             isOpen={showResponseModal}
             task={selectedTaskForResponse}
-            providerId={currentUserProfile.id}
-            providerName={`${currentUserProfile.first_name} ${currentUserProfile.last_name}`}
+            workerId={currentUserProfile.id}
+            workerName={`${currentUserProfile.first_name} ${currentUserProfile.last_name}`}
             onClose={() => {
               setShowResponseModal(false);
               setSelectedTaskForResponse(null);
@@ -850,7 +851,7 @@ const TasksPage: React.FC = () => {
                 supabase
                   .from("todo_list")
                   .select("*")
-                  .eq("provider_id", currentUserProfile.id)
+                  .eq("worker_id", currentUserProfile.id)
                   .order("created_at", { ascending: false })
                   .then(({ data }) => setTodoItems(data || []));
               }
