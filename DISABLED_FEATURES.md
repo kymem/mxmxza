@@ -1,7 +1,7 @@
 # Disabled Features Log
 
 **Date**: 2025-05-11
-**Purpose**: Archive guest-focused landing page/footer and navbar sections; migrate to provider/service provider focused interface
+**Purpose**: Archive guest-focused landing page/footer and navbar sections; migrate to provider/worker focused interface
 
 ## Overview
 
@@ -30,7 +30,7 @@ All code remains intact in the project for future restoration. Routes and pages 
 ## Files Created (New Services-Focused Pages)
 
 ### 1. `client/pages/ServicesHomePage.tsx` (NEW)
-- **Purpose**: Services stakeholder (providers, managers, coordinators) focused landing page
+- **Purpose**: Services stakeholder (workers, managers, coordinators) focused landing page
 - **Content Focus**:
   - Task management, performance analytics, resource planning
   - Links to Tasks, Reports, Accounts sections
@@ -47,7 +47,7 @@ All code remains intact in the project for future restoration. Routes and pages 
 
 ### 3. `client/pages/ServicesProfilePage.tsx` (NEW)
 - **Purpose**: Services stakeholder profile page (replaces guest-focused ProfilePage)
-- **Context**: Addresses providers, managers, and coordinators with services/operations focus
+- **Context**: Addresses workers, managers, and coordinators with services/operations focus
 - **Maintained Features**:
   - All Supabase database connectivity preserved
   - Profile data editing (firstName, lastName, email, phone, birthday, location)
@@ -60,7 +60,7 @@ All code remains intact in the project for future restoration. Routes and pages 
 - **Data Fields**:
   - Personal info: firstName, lastName, email, phone, birthday, location
   - Profile picture management
-  - Role type selection (Manager, Service Provider, Coordinator)
+  - Role type selection (Manager, Worker, Coordinator)
   - Task category preferences
   - Notification settings (tasks, reports, alerts, newsletter)
 - **Database Sync**: Same real-time sync mechanism as ProfilePage - field updates save automatically

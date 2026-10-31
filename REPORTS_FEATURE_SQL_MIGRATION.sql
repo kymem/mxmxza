@@ -93,7 +93,7 @@ CREATE TRIGGER update_task_evidence_requirements_updated_at BEFORE UPDATE ON tas
 -- ============================================================================
 -- 4. TASK REPORTS TABLE
 -- ============================================================================
--- Service provider's progress reports on in-progress tasks
+-- Worker's progress reports on in-progress tasks
 -- One report per task (updated as work progresses)
 
 CREATE TABLE IF NOT EXISTS public.task_reports (
@@ -175,7 +175,7 @@ CREATE TRIGGER update_task_report_checklist_items_updated_at BEFORE UPDATE ON ta
 -- ============================================================================
 -- 6. TASK EVIDENCE SUBMISSIONS TABLE
 -- ============================================================================
--- Tracks evidence/proof submitted by service provider
+-- Tracks evidence/proof submitted by worker
 -- (photos, videos, documents, signatures, etc.)
 
 CREATE TABLE IF NOT EXISTS public.task_evidence_submissions (
@@ -232,7 +232,7 @@ CREATE TRIGGER update_task_evidence_submissions_updated_at BEFORE UPDATE ON task
 -- ============================================================================
 -- 7. TASK ISSUES TABLE
 -- ============================================================================
--- Track issues/blockers raised by service provider
+-- Track issues/blockers raised by worker
 -- When issue is raised, task is flagged for manager attention
 
 CREATE TABLE IF NOT EXISTS public.task_issues (
@@ -518,7 +518,7 @@ ORDER BY ti.severity DESC, ti.created_at DESC;
 
 -- Sample: Get actual IDs (run these queries separately to get real IDs)
 -- SELECT id, user_id, first_name, last_name, role FROM user_profiles WHERE role = 'manager' LIMIT 1;
--- SELECT id, user_id, first_name, last_name, role FROM user_profiles WHERE role = 'service_provider' LIMIT 1;
+-- SELECT id, user_id, first_name, last_name, role FROM user_profiles WHERE role = 'worker' LIMIT 1;
 
 -- Then replace in the INSERT statements below:
 -- {manager-profile-id} = actual manager user_profiles.id

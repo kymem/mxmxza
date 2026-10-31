@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   email VARCHAR(255) NOT NULL UNIQUE,
-  role VARCHAR(50) NOT NULL DEFAULT 'guest' CHECK (role IN ('guest', 'manager', 'service_provider')),
+  role VARCHAR(50) NOT NULL DEFAULT 'guest' CHECK (role IN ('guest', 'manager', 'worker')),
   first_name VARCHAR(100),
   last_name VARCHAR(100),
   phone VARCHAR(20),

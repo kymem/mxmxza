@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Header from "./components/layout/Header";
 import ServicesFooter from "./components/layout/ServicesFooter";
@@ -145,6 +145,7 @@ function App() {
               <Route path="/events/operations/:eventId" element={<SpecialEventOperationsPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/workers" element={<WorkersPage />} />
+              <Route path="/service-providers" element={<Navigate to="/workers" replace />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/register" element={<RegisterPage />} />
