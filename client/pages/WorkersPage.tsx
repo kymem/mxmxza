@@ -41,7 +41,7 @@ const WorkersPage = () => {
 
     let active = true;
     setIsLoading(true);
-    supabase.rpc("get_service_provider_directory", {
+    supabase.rpc("get_worker_directory", {
       target_organization_id: tenant.organizationId,
     }).then(({ data, error }) => {
       if (!active) return;
@@ -156,7 +156,7 @@ const WorkersPage = () => {
                       </div>
                     )}
                     <Button asChild className="w-full">
-                      <Link to={`/tasks/new?providerId=${encodeURIComponent(provider.profile_id)}`}>Assign to a task</Link>
+                      <Link to={`/tasks/new?workerId=${encodeURIComponent(provider.profile_id)}`}>Assign to a task</Link>
                     </Button>
                   </CardContent>
                 </Card>

@@ -100,13 +100,13 @@ const MenuManagementPage = () => {
 
       const [{ data: profile }, { data: membership }] = await Promise.all([
         supabase.from("user_profiles").select("role, menu_access_role, menu_access_approved").eq("user_id", user.id).maybeSingle(),
-        supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin", "provider"]).maybeSingle(),
+        supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin", "worker"]).maybeSingle(),
       ]);
       const manager = profile?.role === "manager" && (membership?.role === "owner" || membership?.role === "admin");
       const approvedProvider = profile && isWorkerRole(profile.role)
         && profile.menu_access_approved === true
         && (profile.menu_access_role === "chef" || profile.menu_access_role === "food_beverage_manager")
-        && membership?.role === "provider";
+        && membership?.role === "worker";
       const canManage = Boolean(manager || approvedProvider);
       setIsManager(Boolean(manager));
       setAuthorized(canManage);

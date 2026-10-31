@@ -45,7 +45,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
     setReviewRating(0);
     setReviewTestimonial("");
     setIsReviewLoading(true);
-    supabase.rpc("get_service_provider_task_review", { target_task_id: task.id }).then(({ data, error }) => {
+    supabase.rpc("get_worker_task_review", { target_task_id: task.id }).then(({ data, error }) => {
       if (!active) return;
       if (error) {
         toast({ title: "Could not load provider review", description: error.message, variant: "destructive" });
@@ -64,7 +64,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
       return;
     }
     setIsReviewSaving(true);
-    const { error } = await supabase.rpc("submit_service_provider_review", {
+    const { error } = await supabase.rpc("submit_worker_review", {
       target_task_id: task.id,
       target_rating: reviewRating,
       target_testimonial: reviewTestimonial.trim(),

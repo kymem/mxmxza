@@ -107,7 +107,7 @@ const emptyDirectoryForm: DirectoryForm = {
 };
 
 const fetchDirectoryListing = async (): Promise<{ listing: DirectoryListing | null; error: string | null }> => {
-  const { data, error } = await supabase.rpc("get_my_service_provider_directory_profile");
+  const { data, error } = await supabase.rpc("get_my_worker_directory_profile");
   if (error) {
     console.error("Unable to load worker directory profile:", error);
     return { listing: null, error: error.message };
@@ -328,7 +328,7 @@ const ServicesProfilePage = () => {
     }
     setIsDirectorySaving(true);
     setDirectoryError("");
-    const { error } = await supabase.rpc("save_my_service_provider_directory_profile", {
+    const { error } = await supabase.rpc("save_my_worker_directory_profile", {
       target_is_listed: directoryProfile.isListed,
       target_visibility_scope: directoryProfile.visibilityScope,
       target_organization_id: directoryProfile.visibilityScope === "hotel" ? tenant?.organizationId ?? null : null,
@@ -365,7 +365,7 @@ const ServicesProfilePage = () => {
   const removeDirectoryProfile = async () => {
     setIsDirectoryRemoving(true);
     setDirectoryError("");
-    const { error } = await supabase.rpc("delete_my_service_provider_directory_profile");
+    const { error } = await supabase.rpc("delete_my_worker_directory_profile");
     setIsDirectoryRemoving(false);
 
     if (error) {

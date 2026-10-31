@@ -344,7 +344,7 @@ const TasksPage: React.FC = () => {
         setInternalStaff(internalData || []);
 
         // Load external vendors
-        const { data: externalData, error: externalError } = await supabase.rpc("get_service_provider_directory", {
+        const { data: externalData, error: externalError } = await supabase.rpc("get_worker_directory", {
           target_organization_id: tenant.organizationId,
         });
 
@@ -457,9 +457,9 @@ const TasksPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const providerId = new URLSearchParams(location.search).get("providerId");
-    if (providerId && externalVendors.some((provider) => provider.id === providerId)) {
-      setFormData((prev) => ({ ...prev, assignmentType: "external", assignee: providerId }));
+    const workerId = new URLSearchParams(location.search).get("workerId");
+    if (workerId && externalVendors.some((worker) => worker.id === workerId)) {
+      setFormData((prev) => ({ ...prev, assignmentType: "external", assignee: workerId }));
     }
   }, [location.search, externalVendors]);
 
