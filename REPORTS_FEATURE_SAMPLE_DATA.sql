@@ -163,7 +163,7 @@ BEGIN
   
   INSERT INTO public.task_reports (
     task_id,
-    provider_id,
+    worker_id,
     status,
     description,
     percentage_complete,
@@ -214,7 +214,7 @@ BEGIN
   
   INSERT INTO public.task_evidence_submissions (
     task_id,
-    provider_id,
+    worker_id,
     evidence_type,
     attachment_id,
     description,
@@ -244,7 +244,7 @@ BEGIN
   
   INSERT INTO public.task_issues (
     task_id,
-    provider_id,
+    worker_id,
     title,
     description,
     severity,
@@ -268,7 +268,7 @@ BEGIN
   -- Create another report entry showing task nearing completion
   INSERT INTO public.task_reports (
     task_id,
-    provider_id,
+    worker_id,
     status,
     description,
     percentage_complete,
@@ -358,7 +358,7 @@ BEGIN
     false
   ) RETURNING id INTO v_task_id;
 
-  INSERT INTO task_reports (task_id, provider_id, status, description, 
+  INSERT INTO task_reports (task_id, worker_id, status, description, 
     percentage_complete, last_updated_by)
   VALUES (
     v_task_id,
@@ -386,7 +386,7 @@ BEGIN
     false
   ) RETURNING id INTO v_task_id;
 
-  INSERT INTO task_issues (task_id, provider_id, title, description, 
+  INSERT INTO task_issues (task_id, worker_id, title, description, 
     severity, status)
   VALUES (
     v_task_id,
