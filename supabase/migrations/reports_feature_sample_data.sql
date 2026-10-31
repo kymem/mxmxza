@@ -217,7 +217,7 @@ BEGIN
  ) THEN
  INSERT INTO task_reports (
  task_id,
- provider_id,
+ worker_id,
  status,
  description,
  percentage_complete,
@@ -264,7 +264,7 @@ BEGIN
  ) THEN
  INSERT INTO task_issues (
  task_id,
- provider_id,
+ worker_id,
  title,
  description,
  severity,

@@ -1103,14 +1103,14 @@ const ServicesProfilePage = () => {
                           { name: 'John Smith', rating: 4.8, tasks: 42 },
                           { name: 'Sarah Johnson', rating: 4.6, tasks: 38 },
                           { name: 'Mike Brown', rating: 4.9, tasks: 45 },
-                        ].map((provider, index) => (
+                        ].map((worker, index) => (
                           <div key={index} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-medium text-sm">{provider.name}</h4>
-                              <Badge variant="outline">{provider.rating} ⭐</Badge>
+                              <h4 className="font-medium text-sm">{worker.name}</h4>
+                              <Badge variant="outline">{worker.rating} ⭐</Badge>
                             </div>
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>{provider.tasks} tasks completed</span>
+                              <span>{worker.tasks} tasks completed</span>
                               <span>Top Performer</span>
                             </div>
                           </div>
@@ -1542,23 +1542,23 @@ const ServicesProfilePage = () => {
                   )}
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-1">
-                      <Label htmlFor="provider-directory-listed">List my worker profile</Label>
+                      <Label htmlFor="worker-directory-listed">List my worker profile</Label>
                       <p className="text-sm text-muted-foreground">You can turn this off at any time.</p>
                     </div>
                     <Switch
-                      id="provider-directory-listed"
+                      id="worker-directory-listed"
                       checked={directoryProfile.isListed}
                       onCheckedChange={(isListed) => setDirectoryProfile((profile) => ({ ...profile, isListed }))}
                     />
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="provider-visibility">Visible to</Label>
+                      <Label htmlFor="worker-visibility">Visible to</Label>
                       <Select
                         value={directoryProfile.visibilityScope}
                         onValueChange={(visibilityScope: "ecosystem" | "hotel") => setDirectoryProfile((profile) => ({ ...profile, visibilityScope }))}
                       >
-                        <SelectTrigger id="provider-visibility"><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="worker-visibility"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ecosystem">Managers across all hotels</SelectItem>
                           <SelectItem value="hotel" disabled={!tenant?.organizationId}>Managers at {tenant?.name || "this hotel"}</SelectItem>
@@ -1567,9 +1567,9 @@ const ServicesProfilePage = () => {
                       <p className="text-xs text-muted-foreground">Only authorized hotel managers can browse listed profiles.</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="provider-years-experience">Years of experience</Label>
+                      <Label htmlFor="worker-years-experience">Years of experience</Label>
                       <Input
-                        id="provider-years-experience"
+                        id="worker-years-experience"
                         type="number"
                         min="0"
                         max="80"
@@ -1578,9 +1578,9 @@ const ServicesProfilePage = () => {
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="provider-specialties">Specialties</Label>
+                      <Label htmlFor="worker-specialties">Specialties</Label>
                       <Input
-                        id="provider-specialties"
+                        id="worker-specialties"
                         value={directoryProfile.specialties}
                         onChange={(event) => setDirectoryProfile((profile) => ({ ...profile, specialties: event.target.value }))}
                         placeholder="HVAC, plumbing, electrical"
@@ -1588,9 +1588,9 @@ const ServicesProfilePage = () => {
                       <p className="text-xs text-muted-foreground">Separate specialties with commas; up to 12.</p>
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="provider-summary">Professional summary</Label>
+                      <Label htmlFor="worker-summary">Professional summary</Label>
                       <Textarea
-                        id="provider-summary"
+                        id="worker-summary"
                         value={directoryProfile.professionalSummary}
                         onChange={(event) => setDirectoryProfile((profile) => ({ ...profile, professionalSummary: event.target.value }))}
                         maxLength={1000}
@@ -1639,7 +1639,7 @@ const ServicesProfilePage = () => {
                         {
                           title: 'Worker Performance Review',
                           date: '2024-01-10',
-                          providers: 5,
+                          workers: 5,
                           avgRating: 4.7,
                           status: 'completed',
                         },
@@ -2132,7 +2132,7 @@ const ServicesProfilePage = () => {
                               {rewardsSummary?.policy.referrerBonusPoints ?? 250} points
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              After the referred provider completes a manager-approved task
+                              After the referred worker completes a manager-approved task
                             </p>
                           </div>
                           <ul className="space-y-2 text-sm">
@@ -2272,7 +2272,7 @@ const ServicesProfilePage = () => {
                               {rewardsSummary?.policy.referrerBonusPoints ?? 250} Points
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              After the referred provider's first approved task
+                              After the referred worker's first approved task
                             </p>
                           </div>
                           <ul className="space-y-2 text-sm">

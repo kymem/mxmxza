@@ -4,7 +4,26 @@ alter table public.service_provider_directory_profiles rename to worker_director
 alter table public.service_provider_reviews rename to worker_reviews;
 alter index public.service_provider_directory_listed_hotel_idx rename to worker_directory_listed_hotel_idx;
 alter index public.service_provider_directory_listed_ecosystem_idx rename to worker_directory_listed_ecosystem_idx;
-alter index public.service_provider_reviews_provider_idx rename to worker_reviews_provider_idx;
+alter index public.service_provider_reviews_provider_idx rename to worker_reviews_worker_idx;
+
+alter table public.worker_reviews rename column provider_profile_id to worker_profile_id;
+
+alter table public.task_reports rename column provider_id to worker_id;
+alter table public.task_evidence_submissions rename column provider_id to worker_id;
+alter table public.task_issues rename column provider_id to worker_id;
+alter table public.task_responses rename column provider_id to worker_id;
+alter table public.task_proposals rename column provider_id to worker_id;
+alter table public.todo_list rename column provider_id to worker_id;
+
+alter index if exists public.idx_task_reports_provider_id rename to idx_task_reports_worker_id;
+alter index if exists public.idx_task_evidence_submissions_provider_id rename to idx_task_evidence_submissions_worker_id;
+alter index if exists public.idx_task_issues_provider_id rename to idx_task_issues_worker_id;
+
+alter table public.books_memberships drop constraint if exists books_memberships_role_check;
+update public.books_memberships set role = 'worker' where role = 'provider';
+alter table public.books_memberships
+  add constraint books_memberships_role_check
+  check (role in ('owner', 'admin', 'member', 'worker'));
 
 alter function public.get_my_service_provider_directory_profile() rename to get_my_worker_directory_profile;
 alter function public.save_my_service_provider_directory_profile(boolean, text, uuid, text, text[], integer) rename to save_my_worker_directory_profile;
@@ -44,8 +63,6 @@ begin
      and profile.service_category = 'external';
 end;
 $$;
-revoke all on function public.get_my_worker_directory_profile() from public, anon;
-grant execute on function public.get_my_worker_directory_profile() to authenticated;
 
 create or replace function public.delete_my_worker_directory_profile()
 returns void
@@ -71,8 +88,6 @@ begin
    where profile_id = worker_profile_id;
 end;
 $$;
-revoke all on function public.delete_my_worker_directory_profile() from public, anon;
-grant execute on function public.delete_my_worker_directory_profile() to authenticated;
 
 create or replace function public.save_my_worker_directory_profile(
   target_is_listed boolean,
@@ -148,8 +163,6 @@ begin
          updated_at = now();
 end;
 $$;
-revoke all on function public.save_my_worker_directory_profile(boolean, text, uuid, text, text[], integer) from public, anon;
-grant execute on function public.save_my_worker_directory_profile(boolean, text, uuid, text, text[], integer) to authenticated;
 
 create or replace function public.worker_is_listed_for_hotel(target_profile_id uuid, target_organization_id uuid)
 returns boolean
@@ -177,7 +190,6 @@ as $$
        )
   );
 $$;
-revoke all on function public.worker_is_listed_for_hotel(uuid, uuid) from public, anon, authenticated;
 
 create or replace function public.submit_worker_review(
   target_task_id uuid,
@@ -218,7 +230,7 @@ begin
   if not exists (
     select 1 from public.task_reports report
      where report.task_id = task_row.id
-       and report.provider_id = task_row.assigned_to
+       and report.worker_id = task_row.assigned_to
        and report.status = 'approved'
   ) then
     raise exception 'The worker report must be approved before review';
@@ -233,13 +245,13 @@ begin
   end if;
 
   insert into public.worker_reviews (
-    task_id, provider_profile_id, organization_id, reviewer_user_id, rating, testimonial, updated_at
+    task_id, worker_profile_id, organization_id, reviewer_user_id, rating, testimonial, updated_at
   ) values (
     task_row.id, task_row.assigned_to, task_row.organization_id, auth.uid(), target_rating,
     btrim(coalesce(target_testimonial, '')), now()
   )
   on conflict (task_id) do update
-     set provider_profile_id = excluded.provider_profile_id,
+     set worker_profile_id = excluded.worker_profile_id,
          organization_id = excluded.organization_id,
          rating = excluded.rating,
          testimonial = excluded.testimonial,
@@ -247,8 +259,6 @@ begin
          updated_at = now();
 end;
 $$;
-revoke all on function public.submit_worker_review(uuid, integer, text) from public, anon;
-grant execute on function public.submit_worker_review(uuid, integer, text) to authenticated;
 
 create or replace function public.get_worker_task_review(target_task_id uuid)
 returns table (
@@ -282,8 +292,6 @@ begin
    where review.task_id = target_task_id;
 end;
 $$;
-revoke all on function public.get_worker_task_review(uuid) from public, anon;
-grant execute on function public.get_worker_task_review(uuid) to authenticated;
 
 create or replace function public.get_worker_directory(target_organization_id uuid)
 returns table (
@@ -340,7 +348,7 @@ begin
          and exists (
            select 1 from public.task_reports report
             where report.task_id = task.id
-              and report.provider_id = profile.id
+              and report.worker_id = profile.id
               and report.status = 'approved'
          )
     ) completed on true
@@ -348,7 +356,7 @@ begin
       select round(avg(review.rating)::numeric, 1) as average_rating,
              count(*)::bigint as review_count
         from public.worker_reviews review
-       where review.provider_profile_id = profile.id
+       where review.worker_profile_id = profile.id
          and review.organization_id = target_organization_id
     ) reviews on true
     left join lateral (
@@ -367,7 +375,7 @@ begin
                  review.created_at
             from public.worker_reviews review
             left join public.user_profiles reviewer on reviewer.user_id = review.reviewer_user_id
-           where review.provider_profile_id = profile.id
+           where review.worker_profile_id = profile.id
              and review.organization_id = target_organization_id
              and review.testimonial <> ''
            order by review.created_at desc
@@ -384,8 +392,6 @@ begin
    order by profile.first_name, profile.last_name;
 end;
 $$;
-revoke all on function public.get_worker_directory(uuid) from public, anon;
-grant execute on function public.get_worker_directory(uuid) to authenticated;
 
 create or replace function public.attach_task_hotel_organization()
 returns trigger
@@ -443,28 +449,6 @@ begin
 end;
 $$;
 
-do $$
-declare
-  membership_constraint record;
-begin
-  for membership_constraint in
-    select con.conname, replace(pg_get_constraintdef(con.oid), '''provider''', '''worker''') as definition
-      from pg_constraint con
-     where con.conrelid = 'public.books_memberships'::regclass
-       and con.contype = 'c'
-       and pg_get_constraintdef(con.oid) like '%''provider''%'
-  loop
-    execute format('alter table public.books_memberships drop constraint %I', membership_constraint.conname);
-    update public.books_memberships set role = 'worker' where role = 'provider';
-    execute format('alter table public.books_memberships add constraint %I %s', membership_constraint.conname, membership_constraint.definition);
-  end loop;
-
-  if exists (select 1 from public.books_memberships where role = 'provider') then
-    raise exception 'Books memberships still contain the provider role after rename';
-  end if;
-end;
-$$;
-
 create or replace function public.can_manage_hotel_menu(target_organization_id uuid)
 returns boolean
 language sql
@@ -488,6 +472,250 @@ as $$
        and profile.menu_access_approved
        and profile.menu_access_role in ('chef', 'food_beverage_manager')
   );
+$$;
+
+create or replace function public.approve_menu_access(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+volatile
+set search_path = public
+as $$
+begin
+  if not public.is_manager() then
+    raise exception 'Only managers can approve menu access';
+  end if;
+
+  update public.user_profiles
+  set
+    menu_access_approved = true,
+    updated_at = now()
+  where user_id = target_user_id
+    and role in ('service_provider', 'worker')
+    and menu_access_role in ('chef', 'food_beverage_manager');
+
+  if not found then
+    raise exception 'Worker is not an eligible culinary access request';
+  end if;
+end;
+$$;
+
+create or replace function public.approve_task_report_and_award_points(target_report_id uuid)
+returns integer
+language plpgsql
+security definer
+volatile
+set search_path = pg_catalog, public
+as $$
+declare
+  report_row public.task_reports%rowtype;
+  task_row public.tasks%rowtype;
+  worker_user_id uuid;
+  actor_role text;
+  points_this_month bigint;
+  reward_points integer;
+  program_row public.hotel_loyalty_programs%rowtype;
+begin
+  if auth.uid() is null then raise exception 'Sign in to approve task work'; end if;
+  select role into actor_role from public.user_profiles where user_id = auth.uid();
+  select * into report_row from public.task_reports where id = target_report_id for update;
+  if not found then raise exception 'Task report was not found'; end if;
+  select * into task_row from public.tasks where id = report_row.task_id for update;
+  if not found or task_row.created_by <> auth.uid() or actor_role <> 'manager' then raise exception 'Only the task manager can approve this report'; end if;
+  if task_row.assigned_to is distinct from report_row.worker_id or report_row.status <> 'completed_pending_approval' then
+    raise exception 'This task report is not ready for approval';
+  end if;
+  select user_id into worker_user_id from public.user_profiles where id = report_row.worker_id and role in ('service_provider', 'worker');
+  if worker_user_id is null then raise exception 'Assigned worker account was not found'; end if;
+  update public.task_reports set status = 'approved', last_updated_by = auth.uid(), updated_at = now() where id = report_row.id;
+  update public.tasks set status = 'completed', updated_at = now() where id = task_row.id;
+  insert into public.notifications (user_id, task_id, type, message)
+  values (worker_user_id, task_row.id, 'task_updated', 'Your task "' || task_row.title || '" has been approved and marked complete.');
+  if task_row.organization_id is null then return 0; end if;
+  select * into program_row from public.hotel_loyalty_programs where organization_id = task_row.organization_id and program_enabled;
+  if not found then return 0; end if;
+  perform public.hotel_loyalty_make_account(task_row.organization_id, worker_user_id);
+  select * into program_row from public.hotel_loyalty_programs where organization_id = task_row.organization_id;
+  select coalesce(sum(points_delta), 0) into points_this_month from public.hotel_loyalty_ledger_entries
+  where organization_id = task_row.organization_id and user_id = worker_user_id and entry_type = 'task_earn'
+    and created_at >= date_trunc('month', now());
+  reward_points := least(program_row.task_approval_points, greatest(program_row.monthly_task_points_cap - points_this_month, 0)::integer);
+  if reward_points > 0 and exists (select 1 from public.hotel_loyalty_accounts where organization_id = task_row.organization_id and user_id = worker_user_id and is_enrolled) then
+    if public.apply_hotel_loyalty_delta(task_row.organization_id, worker_user_id, 'task_earn', reward_points,
+      'approved_task', task_row.id, 'Manager-approved hotel task reward') is null then reward_points := 0; end if;
+  else reward_points := 0; end if;
+  perform public.qualify_hotel_loyalty_referral(task_row.organization_id, worker_user_id, 'task', 'approved_task', task_row.id, null);
+  return reward_points;
+end;
+$$;
+
+create or replace function public.submit_task_report_for_approval(target_report_id uuid)
+returns void
+language plpgsql
+security definer
+volatile
+set search_path = pg_catalog, public
+as $$
+declare
+  report_row public.task_reports%rowtype;
+  worker_profile_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Sign in to submit work for approval'; end if;
+  select id into worker_profile_id from public.user_profiles
+   where user_id = auth.uid() and role in ('service_provider', 'worker');
+  if worker_profile_id is null then raise exception 'Only the assigned worker can submit this report'; end if;
+  select * into report_row from public.task_reports where id = target_report_id for update;
+  if not found or report_row.worker_id <> worker_profile_id then raise exception 'Task report was not found'; end if;
+  if report_row.status <> 'in_progress' or report_row.percentage_complete < 100 then raise exception 'Complete the report before requesting approval'; end if;
+  update public.task_reports set status = 'completed_pending_approval', last_updated_by = auth.uid(), updated_at = now() where id = target_report_id;
+end;
+$$;
+
+create or replace function public.qualify_loyalty_referral(
+  target_user_id uuid,
+  target_qualification_type text,
+  target_source_type text,
+  target_source_id uuid,
+  target_purchase_ugx numeric
+)
+returns void
+language plpgsql
+security definer
+volatile
+set search_path = pg_catalog, public
+as $$
+declare
+  referral_row public.loyalty_referrals%rowtype;
+  bonus_referrer integer;
+  bonus_invitee integer;
+  profile_role text;
+  valid_milestone boolean := false;
+  purchase_created_at timestamptz;
+  referral_minimum numeric;
+begin
+  if target_qualification_type = 'purchase' then
+    select created_at into purchase_created_at
+      from public.loyalty_award_queue
+     where user_id = target_user_id and source_type = target_source_type
+       and source_id = target_source_id and status = 'posted';
+    select guest_referral_minimum_ugx into referral_minimum
+      from public.loyalty_program_settings where id = true;
+    valid_milestone := coalesce(target_purchase_ugx >= referral_minimum, false)
+      and purchase_created_at is not null
+      and not exists (
+        select 1 from public.loyalty_award_queue earlier_purchase
+         where earlier_purchase.user_id = target_user_id
+           and earlier_purchase.source_type in ('menu_order', 'hotel_booking', 'special_event_payment')
+           and earlier_purchase.created_at < purchase_created_at
+      );
+  elsif target_qualification_type = 'task' then
+    select exists (
+      select 1 from public.task_reports report
+      join public.tasks task on task.id = report.task_id
+      join public.user_profiles worker on worker.id = report.worker_id
+      where report.task_id = target_source_id and report.status = 'approved'
+        and task.status = 'completed' and worker.user_id = target_user_id
+        and worker.role in ('service_provider', 'worker')
+    ) into valid_milestone;
+  elsif target_qualification_type = 'manager_listing' then
+    select exists (
+      select 1 from public.hotel_rooms room
+      join public.user_profiles manager on manager.user_id = room.created_by
+      where room.id = target_source_id and room.status = 'published'
+        and room.created_by = target_user_id and manager.role = 'manager'
+    ) into valid_milestone;
+  end if;
+  if not exists (select 1 from public.loyalty_program_settings where id = true and program_enabled) then return; end if;
+  if not valid_milestone then return; end if;
+  if not exists (
+    select 1
+      from public.loyalty_referrals referral
+      join public.loyalty_accounts invitee on invitee.user_id = referral.referred_user_id and invitee.is_enrolled
+      join public.loyalty_accounts referrer on referrer.user_id = referral.referrer_user_id and referrer.is_enrolled
+     where referral.referred_user_id = target_user_id and referral.status = 'pending'
+  ) then return; end if;
+
+  select role into profile_role from public.user_profiles where user_id = target_user_id;
+  if target_qualification_type = 'purchase' and profile_role is distinct from 'guest' then return; end if;
+  if target_qualification_type in ('task', 'manager_listing') and profile_role not in ('manager', 'service_provider', 'worker') then return; end if;
+
+  perform 1 from public.loyalty_accounts where user_id = target_user_id for update;
+  select * into referral_row from public.loyalty_referrals
+   where referred_user_id = target_user_id and status = 'pending' for update;
+  if not found then return; end if;
+  select referrer_bonus_points, invitee_bonus_points into bonus_referrer, bonus_invitee
+    from public.loyalty_program_settings where id = true;
+  update public.loyalty_referrals
+     set status = 'qualified', qualification_type = target_qualification_type,
+         qualification_source_type = target_source_type, qualification_source_id = target_source_id,
+         referrer_points = bonus_referrer, invitee_points = bonus_invitee, qualified_at = now()
+   where id = referral_row.id;
+  perform public.apply_loyalty_points_delta(
+    referral_row.referrer_user_id, 'referral_earn', bonus_referrer, 'referral', referral_row.id,
+    'Qualified referral reward'
+  );
+  perform public.apply_loyalty_points_delta(
+    referral_row.referred_user_id, 'referral_welcome', bonus_invitee, 'referral', referral_row.id,
+    'Referral welcome reward'
+  );
+end;
+$$;
+
+create or replace function public.qualify_hotel_loyalty_referral(
+  target_organization_id uuid, target_user_id uuid, target_qualification_type text,
+  target_source_type text, target_source_id uuid, target_purchase_ugx numeric default null
+)
+returns void language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare referral_row public.hotel_loyalty_referrals%rowtype; program_row public.hotel_loyalty_programs%rowtype;
+begin
+  select * into program_row from public.hotel_loyalty_programs where organization_id = target_organization_id and program_enabled;
+  if not found then return; end if;
+  if target_qualification_type = 'purchase' then
+    if target_purchase_ugx < program_row.guest_referral_minimum_ugx
+       or not exists (select 1 from public.user_profiles where user_id = target_user_id and role = 'guest') then return; end if;
+    if exists (
+      select 1 from public.hotel_loyalty_award_queue prior
+      where prior.organization_id = target_organization_id and prior.user_id = target_user_id
+        and (prior.source_created_at, prior.id) < (
+          select current.source_created_at, current.id from public.hotel_loyalty_award_queue current
+          where current.organization_id = target_organization_id and current.source_type = target_source_type and current.source_id = target_source_id
+        )
+    ) then return; end if;
+  elsif target_qualification_type = 'task' then
+    if not exists (
+      select 1 from public.task_reports report join public.tasks task on task.id = report.task_id
+      join public.user_profiles worker on worker.id = report.worker_id
+      where report.task_id = target_source_id and report.status = 'approved' and task.status = 'completed'
+        and task.organization_id = target_organization_id and worker.user_id = target_user_id
+    ) or exists (
+      select 1 from public.task_reports prior_report join public.tasks prior_task on prior_task.id = prior_report.task_id
+      join public.user_profiles worker on worker.id = prior_report.worker_id
+      where prior_report.status = 'approved' and prior_task.status = 'completed'
+        and prior_task.organization_id = target_organization_id and worker.user_id = target_user_id
+        and prior_task.id <> target_source_id
+    ) then return; end if;
+  elsif target_qualification_type = 'manager_listing' then
+    if not exists (select 1 from public.hotel_rooms room where room.id = target_source_id
+      and room.organization_id = target_organization_id and room.status = 'published' and room.created_by = target_user_id)
+       or exists (select 1 from public.hotel_rooms prior_room where prior_room.organization_id = target_organization_id
+        and prior_room.created_by = target_user_id and prior_room.status = 'published' and prior_room.id <> target_source_id) then return; end if;
+  else return;
+  end if;
+  select * into referral_row from public.hotel_loyalty_referrals
+   where organization_id = target_organization_id and referred_user_id = target_user_id and status = 'pending' for update;
+  if not found
+     or not exists (select 1 from public.hotel_loyalty_accounts where organization_id = target_organization_id and user_id = referral_row.referrer_user_id and is_enrolled)
+     or not exists (select 1 from public.hotel_loyalty_accounts where organization_id = target_organization_id and user_id = target_user_id and is_enrolled) then return; end if;
+  update public.hotel_loyalty_referrals set status = 'qualified', qualification_type = target_qualification_type,
+    qualification_source_type = target_source_type, qualification_source_id = target_source_id,
+    referrer_points = program_row.referrer_bonus_points, invitee_points = program_row.invitee_bonus_points,
+    qualified_at = now() where id = referral_row.id;
+  perform public.apply_hotel_loyalty_delta(target_organization_id, referral_row.referrer_user_id, 'referral_earn',
+    program_row.referrer_bonus_points, 'hotel_referral', referral_row.id, 'Qualified hotel referral reward');
+  perform public.apply_hotel_loyalty_delta(target_organization_id, target_user_id, 'referral_welcome',
+    program_row.invitee_bonus_points, 'hotel_referral', referral_row.id, 'Hotel referral welcome reward');
+end;
 $$;
 
 notify pgrst, 'reload schema';

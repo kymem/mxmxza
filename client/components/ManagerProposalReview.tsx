@@ -26,7 +26,7 @@ import { toast } from "../hooks/use-toast";
 interface ManagerProposalReviewProps {
   proposal: TaskProposal | null;
   taskTitle: string;
-  providerName: string;
+  workerName: string;
   onProposalUpdated?: () => void;
 }
 
@@ -35,7 +35,7 @@ type ReviewAction = "accept" | "decline" | "counter";
 export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
   proposal,
   taskTitle,
-  providerName,
+  workerName,
   onProposalUpdated,
 }) => {
   const [selectedAction, setSelectedAction] = useState<ReviewAction | null>(null);
@@ -84,10 +84,10 @@ export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
         title: "Success",
         description:
           selectedAction === "accept"
-            ? "Proposal accepted! Task will move to provider's todo list."
+            ? "Proposal accepted! Task will move to worker's todo list."
             : selectedAction === "decline"
-              ? "Proposal declined. Provider has been notified."
-              : "Counter-proposal sent. Awaiting provider response.",
+              ? "Proposal declined. Worker has been notified."
+              : "Counter-proposal sent. Awaiting worker response.",
       });
 
       setSelectedAction(null);
@@ -135,7 +135,7 @@ export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <CardTitle className="text-lg text-sheraton-navy">
-                Proposal from {providerName}
+                Proposal from {workerName}
               </CardTitle>
               <CardDescription className="text-sm mt-1">
                 For: {taskTitle}
@@ -184,7 +184,7 @@ export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
           {proposal.proposal_notes && (
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-2">
-                Provider's Notes
+                Worker's Notes
               </p>
               <div className="p-4 bg-white border border-gray-200 rounded-lg">
                 <p className="text-sm text-gray-700">{proposal.proposal_notes}</p>
@@ -251,7 +251,7 @@ export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
             </DialogTitle>
             <DialogDescription>
               {selectedAction === "accept"
-                ? "Accept this proposal and move the task to the provider's todo list."
+                ? "Accept this proposal and move the task to the worker's todo list."
                 : selectedAction === "decline"
                   ? "Decline this proposal and provide feedback if needed."
                   : "Suggest different terms for this task."}
@@ -374,7 +374,7 @@ export const ManagerProposalReview: React.FC<ManagerProposalReviewProps> = ({
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-800">
                   ✓ Accepting this proposal will create a task entry in the
-                  provider's todo list with the agreed terms.
+                  worker's todo list with the agreed terms.
                 </p>
               </div>
             )}

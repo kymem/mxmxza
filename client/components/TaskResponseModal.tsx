@@ -21,8 +21,8 @@ interface TaskResponseModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: TaskType | null;
-  providerId: string;
-  providerName: string;
+  workerId: string;
+  workerName: string;
   onResponseSubmitted?: () => void;
 }
 
@@ -32,8 +32,8 @@ export const TaskResponseModal: React.FC<TaskResponseModalProps> = ({
   isOpen,
   onClose,
   task,
-  providerId,
-  providerName,
+  workerId,
+  workerName,
   onResponseSubmitted,
 }) => {
   const [selectedAction, setSelectedAction] = useState<ResponseAction | null>(null);
@@ -56,7 +56,7 @@ export const TaskResponseModal: React.FC<TaskResponseModalProps> = ({
         .insert([
           {
             task_id: task.id,
-            provider_id: providerId,
+            worker_id: workerId,
             action: selectedAction,
             response_message:
               selectedAction === "decline"
@@ -78,7 +78,7 @@ export const TaskResponseModal: React.FC<TaskResponseModalProps> = ({
           .insert([
             {
               task_id: task.id,
-              provider_id: providerId,
+              worker_id: workerId,
               manager_id: task.created_by,
               status: "pending",
               quoted_price: quotedPrice ? parseFloat(quotedPrice) : null,

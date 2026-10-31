@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase, Task as TaskType, UserProfile, TaskReport, TaskChecklist, TaskChecklistItem, TaskReportChecklistItem, TaskEvidenceSubmission, TaskIssue, TaskEvidenceRequirement } from "../../../../lib/supabase";
 import { toast } from "../../../../hooks/use-toast";
-import ProviderReportForm from "./ProviderReportForm";
+import WorkerReportForm from "./WorkerReportForm";
 import ManagerReportView from "./ManagerReportView";
 import { AppRole, isWorkerRole } from "../../../../lib/roles";
 
@@ -18,8 +18,8 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
   currentUserProfile,
   userRole,
 }) => {
-  const [activeTab, setActiveTab] = useState<"provider" | "manager">(
-    isWorkerRole(userRole) ? "provider" : "manager"
+  const [activeTab, setActiveTab] = useState<"worker" | "manager">(
+    isWorkerRole(userRole) ? "worker" : "manager"
   );
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
@@ -192,7 +192,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
         <>
           {/* Role-based content */}
           {isWorkerRole(userRole) ? (
-            <ProviderReportForm
+            <WorkerReportForm
               task={selectedTask}
               taskReport={taskReport}
               checklist={checklist}

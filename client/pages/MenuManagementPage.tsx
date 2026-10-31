@@ -40,7 +40,7 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
-type PendingMenuProvider = {
+type PendingMenuWorker = {
   user_id: string;
   email: string;
   first_name: string;
@@ -72,7 +72,7 @@ const MenuManagementPage = () => {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [isManager, setIsManager] = useState(false);
-  const [pendingProviders, setPendingProviders] = useState<PendingMenuProvider[]>([]);
+  const [pendingWorkers, setPendingWorkers] = useState<PendingMenuWorker[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -103,22 +103,22 @@ const MenuManagementPage = () => {
         supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin", "worker"]).maybeSingle(),
       ]);
       const manager = profile?.role === "manager" && (membership?.role === "owner" || membership?.role === "admin");
-      const approvedProvider = profile && isWorkerRole(profile.role)
+      const approvedWorker = profile && isWorkerRole(profile.role)
         && profile.menu_access_approved === true
         && (profile.menu_access_role === "chef" || profile.menu_access_role === "food_beverage_manager")
         && membership?.role === "worker";
-      const canManage = Boolean(manager || approvedProvider);
+      const canManage = Boolean(manager || approvedWorker);
       setIsManager(Boolean(manager));
       setAuthorized(canManage);
       if (manager) {
-        const { data: providers } = await supabase
+        const { data: workers } = await supabase
           .from("user_profiles")
           .select("user_id, email, first_name, last_name, service_type, menu_access_role")
           .in("role", WORKER_ROLE_VALUES)
           .eq("menu_access_approved", false)
           .in("menu_access_role", ["chef", "food_beverage_manager"])
           .order("created_at", { ascending: true });
-        setPendingProviders((providers || []) as PendingMenuProvider[]);
+        setPendingWorkers((workers || []) as PendingMenuWorker[]);
       }
       if (canManage) {
         const [{ data: databaseItems }, { data: kitchenSettings }] = await Promise.all([
@@ -360,13 +360,13 @@ const MenuManagementPage = () => {
     resetForm();
   };
 
-  const approveProvider = async (userId: string) => {
+  const approveWorker = async (userId: string) => {
     const { error } = await supabase.rpc("approve_menu_access", {
       target_user_id: userId,
     });
 
     if (!error) {
-      setPendingProviders((current) => current.filter((provider) => provider.user_id !== userId));
+      setPendingWorkers((current) => current.filter((worker) => worker.user_id !== userId));
     }
   };
 
@@ -444,17 +444,17 @@ const MenuManagementPage = () => {
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
-              {pendingProviders.length === 0 ? (
+              {pendingWorkers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No pending culinary access requests.</p>
               ) : (
-                pendingProviders.map((provider) => (
-                  <div key={provider.user_id} className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
+                pendingWorkers.map((worker) => (
+                  <div key={worker.user_id} className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="font-semibold">{[provider.first_name, provider.last_name].filter(Boolean).join(" ") || provider.email}</p>
-                      <p className="text-sm text-muted-foreground">{provider.email} · {provider.service_type || "Food service"}</p>
-                      <Badge variant="outline" className="mt-2">{provider.menu_access_role === "chef" ? "Chef / Culinary Staff" : "Food & Beverage Manager"}</Badge>
+                      <p className="font-semibold">{[worker.first_name, worker.last_name].filter(Boolean).join(" ") || worker.email}</p>
+                      <p className="text-sm text-muted-foreground">{worker.email} · {worker.service_type || "Food service"}</p>
+                      <Badge variant="outline" className="mt-2">{worker.menu_access_role === "chef" ? "Chef / Culinary Staff" : "Food & Beverage Manager"}</Badge>
                     </div>
-                    <Button type="button" onClick={() => approveProvider(provider.user_id)}>Approve Menu Access</Button>
+                    <Button type="button" onClick={() => approveWorker(worker.user_id)}>Approve Menu Access</Button>
                   </div>
                 ))
               )}

@@ -48,7 +48,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
     supabase.rpc("get_worker_task_review", { target_task_id: task.id }).then(({ data, error }) => {
       if (!active) return;
       if (error) {
-        toast({ title: "Could not load provider review", description: error.message, variant: "destructive" });
+        toast({ title: "Could not load worker review", description: error.message, variant: "destructive" });
       } else {
         setReviewRating(data?.[0]?.rating || 0);
         setReviewTestimonial(data?.[0]?.testimonial || "");
@@ -58,7 +58,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
     return () => { active = false; };
   }, [task.id, task.assigned_category, hasApprovedReport]);
 
-  const handleSaveProviderReview = async () => {
+  const handleSaveWorkerReview = async () => {
     if (reviewRating < 1 || reviewRating > 5) {
       toast({ title: "Choose a rating", description: "Select a score from 1 to 5.", variant: "destructive" });
       return;
@@ -74,7 +74,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
       toast({ title: "Review not saved", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Provider review saved", description: "This rating is visible to managers in this hotel's directory." });
+    toast({ title: "Worker review saved", description: "This rating is visible to managers in this hotel's directory." });
   };
 
   const openIssues = issues.filter((i) => i.status === "open");
@@ -167,7 +167,7 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
 
       {/* Progress Report */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-sheraton-navy mb-4">Provider Progress Report</h3>
+        <h3 className="text-lg font-semibold text-sheraton-navy mb-4">Worker Progress Report</h3>
 
         {/* Completion Status */}
         <div className="mb-6">
@@ -352,9 +352,9 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
 
       {hasApprovedReport && task.assigned_category === "external" && (
         <div className="rounded-lg border bg-white p-6 shadow-md">
-          <h3 className="text-lg font-semibold text-sheraton-navy">Rate this provider</h3>
-          <p className="mb-4 mt-1 text-sm text-muted-foreground">Your rating and optional testimonial are visible to managers in this hotel's provider directory.</p>
-          <div className="mb-4 flex gap-1" role="radiogroup" aria-label="Provider rating">
+          <h3 className="text-lg font-semibold text-sheraton-navy">Rate this worker</h3>
+          <p className="mb-4 mt-1 text-sm text-muted-foreground">Your rating and optional testimonial are visible to managers in this hotel's worker directory.</p>
+          <div className="mb-4 flex gap-1" role="radiogroup" aria-label="Worker rating">
             {[1, 2, 3, 4, 5].map((rating) => (
               <button
                 key={rating}
@@ -375,11 +375,11 @@ const ManagerReportView: React.FC<ManagerReportViewProps> = ({
             maxLength={1000}
             rows={3}
             placeholder="Optional feedback about the completed work"
-            aria-label="Provider testimonial"
+            aria-label="Worker testimonial"
           />
           <button
             type="button"
-            onClick={() => void handleSaveProviderReview()}
+            onClick={() => void handleSaveWorkerReview()}
             disabled={isReviewLoading || isReviewSaving}
             className="mt-4 rounded-md bg-sheraton-gold px-4 py-2 font-medium text-sheraton-navy disabled:opacity-50"
           >

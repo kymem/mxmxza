@@ -4,7 +4,7 @@ import { toast } from "../../../../hooks/use-toast";
 import { useFileUpload } from "../../../../hooks/useFileUpload";
 import EvidenceUploadZone, { FileAttachment } from "../../../../components/EvidenceUploadZone";
 
-interface ProviderReportFormProps {
+interface WorkerReportFormProps {
   task: TaskType;
   taskReport: TaskReport | null;
   checklist: TaskChecklist | null;
@@ -18,7 +18,7 @@ interface ProviderReportFormProps {
   onReportUpdated: () => void;
 }
 
-const ProviderReportForm: React.FC<ProviderReportFormProps> = ({
+const WorkerReportForm: React.FC<WorkerReportFormProps> = ({
   task,
   taskReport,
   checklist,
@@ -126,7 +126,7 @@ const ProviderReportForm: React.FC<ProviderReportFormProps> = ({
           .from("task_reports")
           .insert({
             task_id: task.id,
-            provider_id: currentUserProfile.id,
+            worker_id: currentUserProfile.id,
             description,
             percentage_complete: percentage,
             last_updated_by: currentUser.id,
@@ -203,7 +203,7 @@ const ProviderReportForm: React.FC<ProviderReportFormProps> = ({
           .from("task_evidence_submissions")
           .insert({
             task_id: task.id,
-            provider_id: currentUserProfile.id,
+            worker_id: currentUserProfile.id,
             attachment_id: uploadedFile.attachmentId,
             evidence_type: evidenceType,
             description: evidenceDescription,
@@ -267,7 +267,7 @@ const ProviderReportForm: React.FC<ProviderReportFormProps> = ({
         .from("task_issues")
         .insert({
           task_id: task.id,
-          provider_id: currentUserProfile.id,
+          worker_id: currentUserProfile.id,
           title: issueTitle,
           description: issueDescription,
           severity: issueSeverity,
@@ -730,4 +730,4 @@ const ProviderReportForm: React.FC<ProviderReportFormProps> = ({
   );
 };
 
-export default ProviderReportForm;
+export default WorkerReportForm;

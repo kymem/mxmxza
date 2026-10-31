@@ -114,7 +114,7 @@ const TasksPage: React.FC = () => {
       supabase
         .from("todo_list")
         .select("*")
-        .eq("provider_id", currentUserProfile.id)
+        .eq("worker_id", currentUserProfile.id)
         .order("created_at", { ascending: false })
         .then(({ data }) => setTodoItems(data || []));
     }
@@ -276,13 +276,13 @@ const TasksPage: React.FC = () => {
             event: "*",
             schema: "public",
             table: "todo_list",
-            filter: `provider_id=eq.${currentUserProfile.id}`,
+            filter: `worker_id=eq.${currentUserProfile.id}`,
           },
           () => {
             supabase
               .from("todo_list")
               .select("*")
-              .eq("provider_id", currentUserProfile.id)
+              .eq("worker_id", currentUserProfile.id)
               .order("created_at", { ascending: false })
               .then(({ data }) => setTodoItems(data || []));
           }
@@ -349,16 +349,16 @@ const TasksPage: React.FC = () => {
         });
 
         if (externalError) {
-          console.error("Unable to load opted-in providers:", externalError);
+          console.error("Unable to load opted-in workers:", externalError);
           setExternalVendors([]);
         } else {
-          setExternalVendors((externalData || []).map((provider: any) => ({
-            id: provider.profile_id,
+          setExternalVendors((externalData || []).map((worker: any) => ({
+            id: worker.profile_id,
             email: "",
-            first_name: provider.full_name || "Worker",
+            first_name: worker.full_name || "Worker",
             last_name: "",
-            service_type: provider.service_type || "External vendor",
-            display_name: provider.full_name || "Worker",
+            service_type: worker.service_type || "External vendor",
+            display_name: worker.full_name || "Worker",
           })));
         }
 
@@ -414,7 +414,7 @@ const TasksPage: React.FC = () => {
           const { data: todosData, error: todosError } = await supabase
             .from("todo_list")
             .select("*")
-            .eq("provider_id", profileData.id)
+            .eq("worker_id", profileData.id)
             .order("created_at", { ascending: false });
 
           // Todos error handled - may not have todos yet
@@ -792,7 +792,7 @@ const TasksPage: React.FC = () => {
                   supabase
                     .from("todo_list")
                     .select("*")
-                    .eq("provider_id", currentUserProfile.id)
+                    .eq("worker_id", currentUserProfile.id)
                     .order("created_at", { ascending: false })
                     .then(({ data }) => setTodoItems(data || []));
                 }
@@ -834,8 +834,8 @@ const TasksPage: React.FC = () => {
           <TaskResponseModal
             isOpen={showResponseModal}
             task={selectedTaskForResponse}
-            providerId={currentUserProfile.id}
-            providerName={`${currentUserProfile.first_name} ${currentUserProfile.last_name}`}
+            workerId={currentUserProfile.id}
+            workerName={`${currentUserProfile.first_name} ${currentUserProfile.last_name}`}
             onClose={() => {
               setShowResponseModal(false);
               setSelectedTaskForResponse(null);
@@ -851,7 +851,7 @@ const TasksPage: React.FC = () => {
                 supabase
                   .from("todo_list")
                   .select("*")
-                  .eq("provider_id", currentUserProfile.id)
+                  .eq("worker_id", currentUserProfile.id)
                   .order("created_at", { ascending: false })
                   .then(({ data }) => setTodoItems(data || []));
               }

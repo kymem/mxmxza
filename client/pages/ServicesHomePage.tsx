@@ -43,7 +43,7 @@ const ServicesHomePage = ({
     else setTimeOfDay("evening");
   }, []);
 
-  const providerFeatures = [
+  const workerFeatures = [
     {
       title: "Task Management",
       description: "Create, assign, and track service delivery tasks in real-time",
@@ -181,7 +181,7 @@ const ServicesHomePage = ({
         </div>
       </section>
 
-      {/* Provider Features Grid */}
+      {/* Worker Features Grid */}
       <section className="py-20 bg-gradient-to-b from-background to-sheraton-cream">
         <div className="container">
           <div className="text-center mb-16">
@@ -195,7 +195,7 @@ const ServicesHomePage = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {providerFeatures.map((feature, index) => (
+            {workerFeatures.map((feature, index) => (
               <Link key={index} to={feature.href}>
                 <Card className="group hover:scale-105 transition-all duration-300 luxury-shadow hover:shadow-2xl border-0 overflow-hidden">
                   <div className={`h-2 bg-gradient-to-r ${feature.gradient}`} />

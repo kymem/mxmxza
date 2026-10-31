@@ -139,7 +139,7 @@ export interface Notification {
 export interface TaskResponse {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   action: 'accept' | 'decline' | 'propose'
   response_message: string | null
   created_at: string
@@ -149,7 +149,7 @@ export interface TaskResponse {
 export interface TaskProposal {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   manager_id: string
   status: 'pending' | 'accepted' | 'declined' | 'counter_proposed'
   quoted_price: number | null
@@ -166,7 +166,7 @@ export interface TaskProposal {
 export interface TodoListItem {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   status: 'pending' | 'in_progress' | 'completed'
   title: string
   description: string | null
@@ -239,7 +239,7 @@ export interface TaskEvidenceRequirement {
 export interface TaskReport {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   status: 'in_progress' | 'completed_pending_approval' | 'approved'
   description: string
   percentage_complete: number
@@ -261,7 +261,7 @@ export interface TaskReportChecklistItem {
 export interface TaskEvidenceSubmission {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   evidence_type: 'photo' | 'video' | 'document' | 'signature'
   attachment_id: string
   attachments?: Pick<Attachment, "b2_url" | "file_type" | "original_name" | "file_size"> | null
@@ -276,7 +276,7 @@ export interface TaskEvidenceSubmission {
 export interface TaskIssue {
   id: string
   task_id: string
-  provider_id: string
+  worker_id: string
   title: string
   description: string
   severity: 'low' | 'medium' | 'high' | 'critical'

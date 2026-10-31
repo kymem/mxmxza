@@ -89,7 +89,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
       const hasResponse = taskResponses.some(
         (response) =>
           response.task_id === task.id &&
-          response.provider_id === currentUserProfile.id
+          response.worker_id === currentUserProfile.id
       );
 
       return !hasResponse;
@@ -110,11 +110,11 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
   };
 
   // Helper: Get pending proposals for current worker
-  const getPendingProposalsForProvider = () => {
+  const getPendingProposalsForWorker = () => {
     if (!currentUserProfile || !isWorkerRole(userRole)) return [];
 
     return taskProposals.filter((proposal) => {
-      const isForMe = proposal.provider_id === currentUserProfile.id;
+      const isForMe = proposal.worker_id === currentUserProfile.id;
       const isActive = proposal.status === "pending" || proposal.status === "counter_proposed";
       return isForMe && isActive;
     });
@@ -238,7 +238,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
         <div className="border-t-2 border-gray-200 my-8 pt-8"></div>
 
         {/* SECTION 1B: PENDING PROPOSALS */}
-        {getPendingProposalsForProvider().length > 0 && (
+        {getPendingProposalsForWorker().length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <MessageSquare className="h-6 w-6 text-blue-600" />
@@ -253,7 +253,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {getPendingProposalsForProvider().map((proposal) => {
+              {getPendingProposalsForWorker().map((proposal) => {
                 const task = tasks.find((t) => t.id === proposal.task_id);
 
                 return (
@@ -408,7 +408,7 @@ const TodoListTab: React.FC<TodoListTabProps> = ({
                     key={proposal.id}
                     proposal={proposal}
                     taskTitle={task?.title || "Unknown Task"}
-                    providerName={task?.assignee_name || "Unknown Provider"}
+                    workerName={task?.assignee_name || "Unknown Worker"}
                     onProposalUpdated={onProposalUpdated}
                   />
                 );

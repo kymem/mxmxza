@@ -9,7 +9,7 @@ import { Input } from "../components/ui/input";
 import { supabase } from "../lib/supabase";
 import { useHotelTenant } from "../lib/hotelTenant";
 
-type Provider = {
+type WorkerProfile = {
   profile_id: string;
   full_name: string | null;
   service_type: string | null;
@@ -26,7 +26,7 @@ type Provider = {
 
 const WorkersPage = () => {
   const { tenant, loading: tenantLoading } = useHotelTenant();
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [workers, setWorkers] = useState<WorkerProfile[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -48,10 +48,10 @@ const WorkersPage = () => {
       if (error) {
         console.error("Unable to load worker directory:", error);
         setLoadError("You need hotel manager access to browse workers.");
-        setProviders([]);
+        setWorkers([]);
       } else {
         setLoadError("");
-        setProviders((data || []) as Provider[]);
+        setWorkers((data || []) as WorkerProfile[]);
       }
       setIsLoading(false);
     });
@@ -61,17 +61,17 @@ const WorkersPage = () => {
     };
   }, [tenant?.organizationId, tenantLoading]);
 
-  const filteredProviders = useMemo(() => {
+  const filteredWorkers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    if (!normalizedSearch) return providers;
-    return providers.filter((provider) => [
-      provider.full_name,
-      provider.service_type,
-      provider.location,
-      provider.professional_summary,
-      ...(provider.specialties || []),
+    if (!normalizedSearch) return workers;
+    return workers.filter((worker) => [
+      worker.full_name,
+      worker.service_type,
+      worker.location,
+      worker.professional_summary,
+      ...(worker.specialties || []),
     ].some((value) => value?.toLowerCase().includes(normalizedSearch)));
-  }, [providers, search]);
+  }, [workers, search]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-sheraton-cream via-white to-sheraton-pearl">
@@ -106,48 +106,48 @@ const WorkersPage = () => {
           <div className="grid gap-5 md:grid-cols-2">
             {[0, 1, 2, 3].map((item) => <div key={item} className="h-64 animate-pulse rounded-xl bg-white/80" />)}
           </div>
-        ) : !loadError && filteredProviders.length === 0 ? (
+        ) : !loadError && filteredWorkers.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center p-10 text-center">
               <UserRound className="mb-3 h-10 w-10 text-muted-foreground" />
-              <h2 className="font-semibold text-sheraton-navy">{providers.length ? "No matching workers" : "No listed workers yet"}</h2>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">{providers.length ? "Try a different service or specialty." : "External vendors can opt in from their profile. You can still create a task and assign internal staff."}</p>
+              <h2 className="font-semibold text-sheraton-navy">{workers.length ? "No matching workers" : "No listed workers yet"}</h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">{workers.length ? "Try a different service or specialty." : "External vendors can opt in from their profile. You can still create a task and assign internal staff."}</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
-            {filteredProviders.map((provider) => {
-              const initials = (provider.full_name || "Worker").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+            {filteredWorkers.map((worker) => {
+              const initials = (worker.full_name || "Worker").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
               return (
-                <Card key={provider.profile_id} className="overflow-hidden">
+                <Card key={worker.profile_id} className="overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-4">
                       <Avatar className="h-14 w-14">
-                        <AvatarImage src={provider.profile_picture || undefined} alt="" />
+                        <AvatarImage src={worker.profile_picture || undefined} alt="" />
                         <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-lg">{provider.full_name || "Worker"}</CardTitle>
-                        <p className="mt-1 text-sm text-muted-foreground">{provider.service_type || "External vendor"}</p>
-                        {provider.location && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" />{provider.location}</p>}
+                        <CardTitle className="text-lg">{worker.full_name || "Worker"}</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground">{worker.service_type || "External vendor"}</p>
+                        {worker.location && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" />{worker.location}</p>}
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center justify-end gap-1 font-semibold text-sheraton-navy"><Star className="h-4 w-4 fill-sheraton-gold text-sheraton-gold" />{Number(provider.average_rating).toFixed(1)}</div>
-                        <p className="text-xs text-muted-foreground">{provider.review_count} reviews</p>
+                        <div className="flex items-center justify-end gap-1 font-semibold text-sheraton-navy"><Star className="h-4 w-4 fill-sheraton-gold text-sheraton-gold" />{Number(worker.average_rating).toFixed(1)}</div>
+                        <p className="text-xs text-muted-foreground">{worker.review_count} reviews</p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      {(provider.specialties || []).map((specialty) => <Badge key={specialty} variant="secondary">{specialty}</Badge>)}
-                      {provider.years_experience != null && <Badge variant="outline">{provider.years_experience} years experience</Badge>}
-                      <Badge variant="outline">{provider.completed_task_count} completed tasks here</Badge>
+                      {(worker.specialties || []).map((specialty) => <Badge key={specialty} variant="secondary">{specialty}</Badge>)}
+                      {worker.years_experience != null && <Badge variant="outline">{worker.years_experience} years experience</Badge>}
+                      <Badge variant="outline">{worker.completed_task_count} completed tasks here</Badge>
                     </div>
-                    {provider.professional_summary && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{provider.professional_summary}</p>}
-                    {provider.testimonials?.length > 0 && (
+                    {worker.professional_summary && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{worker.professional_summary}</p>}
+                    {worker.testimonials?.length > 0 && (
                       <div className="space-y-2 border-t pt-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recent manager feedback</p>
-                        {provider.testimonials.slice(0, 2).map((review, index) => (
+                        {worker.testimonials.slice(0, 2).map((review, index) => (
                           <blockquote key={`${review.created_at}-${index}`} className="border-l-2 border-sheraton-gold pl-3 text-sm text-muted-foreground">
                             <span className="mr-2 font-medium text-sheraton-navy">{review.rating}/5</span>{review.testimonial}
                             <footer className="mt-1 text-xs">— {review.reviewer_name}, {new Date(review.created_at).toLocaleDateString()}</footer>
@@ -156,7 +156,7 @@ const WorkersPage = () => {
                       </div>
                     )}
                     <Button asChild className="w-full">
-                      <Link to={`/tasks/new?workerId=${encodeURIComponent(provider.profile_id)}`}>Assign to a task</Link>
+                      <Link to={`/tasks/new?workerId=${encodeURIComponent(worker.profile_id)}`}>Assign to a task</Link>
                     </Button>
                   </CardContent>
                 </Card>
