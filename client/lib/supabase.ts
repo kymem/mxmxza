@@ -189,7 +189,7 @@ export interface TaskMessage {
   id: string
   task_id: string
   sender_id: string
-  sender_role: 'manager' | 'worker' | 'service_provider'
+  sender_role: 'manager' | 'worker'
   message_text: string
   attachments: Array<{id: string; name: string; size: number}> | null
   is_read: boolean
