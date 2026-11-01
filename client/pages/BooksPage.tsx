@@ -143,7 +143,11 @@ const BooksPage = () => {
         } else if (requestedOrganizationId) {
           throw new Error("You do not have access to this hotel’s Books workspace.");
         } else {
-          const result = await supabase.rpc("get_or_create_personal_books_organization");
+          const { data: profile, error: profileError } = await supabase.from("user_profiles").select("role").eq("user_id", userData.user.id).maybeSingle();
+          if (profileError) throw profileError;
+          const result = profile?.role === "worker"
+            ? await supabase.rpc("get_or_create_worker_books_organization")
+            : await supabase.rpc("get_or_create_personal_books_organization");
           orgId = result.data;
           orgError = result.error;
         }
