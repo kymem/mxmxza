@@ -237,8 +237,8 @@ const RegisterPage: React.FC = () => {
           const bindingResponse = await fetch("/api/hotel-worker-binding", {
             method: "POST",
             headers: { Authorization: `Bearer ${authData.session.access_token}` },
-          });
-          if (!bindingResponse.ok) {
+          }).catch(() => null);
+          if (!bindingResponse?.ok) {
             console.error("Worker hotel link was not saved at signup");
           }
         }
