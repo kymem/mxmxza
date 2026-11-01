@@ -16,6 +16,19 @@ type SupabaseAppState = {
   listeners: Set<() => void>
 }
 
+const linkUnlinkedWorkerToHotel = async (client: SupabaseClient<any>, session: Session) => {
+  const { data: profile } = await client
+    .from('user_profiles')
+    .select('role, hotel_organization_id')
+    .eq('user_id', session.user.id)
+    .maybeSingle()
+  if (profile?.role !== 'worker' || profile.hotel_organization_id) return
+  await fetch('/api/hotel-worker-binding', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+}
+
 type SupabaseGlobal = typeof globalThis & { __mizuriSupabaseState?: SupabaseAppState }
 const supabaseGlobal = globalThis as SupabaseGlobal
 const appState = supabaseGlobal.__mizuriSupabaseState ??= (() => {
@@ -28,6 +41,7 @@ const appState = supabaseGlobal.__mizuriSupabaseState ??= (() => {
   client.auth.onAuthStateChange((_event, session) => {
     state.snapshot = { session, initialized: true }
     state.listeners.forEach((listener) => listener())
+    if (session) void linkUnlinkedWorkerToHotel(client, session)
   })
   return state
 })()

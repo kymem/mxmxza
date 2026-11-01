@@ -233,16 +233,6 @@ const RegisterPage: React.FC = () => {
           throw new Error(`Account created, but profile setup failed: ${profileError.message}`);
         }
 
-        if (formData.role === "worker") {
-          const bindingResponse = await fetch("/api/hotel-worker-binding", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${authData.session.access_token}` },
-          });
-          if (!bindingResponse.ok) {
-            const payload = await bindingResponse.json().catch(() => null) as { error?: string } | null;
-            throw new Error(payload?.error || "Account created, but hotel link could not be saved");
-          }
-        }
       }
 
       // 3. Enter the app immediately when signup created an active session.
