@@ -363,6 +363,7 @@ const MenuManagementPage = () => {
   const approveWorker = async (userId: string) => {
     const { error } = await supabase.rpc("approve_menu_access", {
       target_user_id: userId,
+      target_organization_id: tenant.organizationId,
     });
 
     if (!error) {
