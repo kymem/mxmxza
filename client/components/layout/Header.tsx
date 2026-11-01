@@ -120,13 +120,14 @@ const Header = () => {
 
         const { data: profile } = await supabase
           .from("user_profiles")
-          .select("role, first_name, last_name, menu_access_role, menu_access_approved")
+          .select("role, first_name, last_name, menu_access_role, menu_access_approved, hotel_organization_id")
           .eq("user_id", user.id)
           .maybeSingle();
         const cachedRole = getCachedHomeIdentity()?.role;
         const role: AppRole = resolveHeaderRole(profile?.role) ?? resolveHeaderRole(cachedRole) ?? "guest";
         const canManage = role === "manager" ||
           (role === "worker" &&
+            profile?.hotel_organization_id === tenant?.organizationId &&
             profile?.menu_access_approved === true &&
             (profile?.menu_access_role === "chef" || profile?.menu_access_role === "food_beverage_manager"));
         setCanManageMenu(canManage);
@@ -214,7 +215,7 @@ const Header = () => {
       subscriptionRef.current?.unsubscribe();
       subscriptionRef.current = null;
     };
-  }, [authInitialized, session?.user.id, refreshSharedRewardsBalance]);
+  }, [authInitialized, session?.user.id, tenant?.organizationId, refreshSharedRewardsBalance]);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();

@@ -1029,7 +1029,9 @@ const createSpecialEventBooking = async (req, res) => {
         target_idempotency_key: input.idempotencyKey,
         target_attendee_names: input.attendeeNames || null,
         target_invitation_id: input.invitationId || null,
-        target_share_token: input.shareToken || null
+        target_share_token: input.shareToken || null,
+        target_business_purchase: input.businessPurchase === true,
+        target_buyer_tax_id: input.buyerTaxId || null
       }
     );
     const [booking] = rows;
@@ -1348,7 +1350,9 @@ const createBooking = async (request, response) => {
           first_name: safeText(body.guest?.firstName, 100),
           last_name: safeText(body.guest?.lastName, 100),
           email,
-          phone: safeText(body.guest?.phone, 40)
+          phone: safeText(body.guest?.phone, 40),
+          business_purchase: body.guest?.businessPurchase === true,
+          buyer_tax_id: safeText(body.guest?.buyerTaxId, 30)
         },
         target_check_in: body.checkIn,
         target_check_out: body.checkOut,

@@ -99,14 +99,14 @@ const MenuManagementPage = () => {
       }
 
       const [{ data: profile }, { data: membership }] = await Promise.all([
-        supabase.from("user_profiles").select("role, menu_access_role, menu_access_approved").eq("user_id", user.id).maybeSingle(),
-        supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin", "worker"]).maybeSingle(),
+        supabase.from("user_profiles").select("role, menu_access_role, menu_access_approved, hotel_organization_id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("books_memberships").select("role").eq("user_id", user.id).eq("organization_id", tenant.organizationId).in("role", ["owner", "admin"]).maybeSingle(),
       ]);
-      const manager = profile?.role === "manager" && (membership?.role === "owner" || membership?.role === "admin");
+      const manager = profile?.role === "manager" && Boolean(membership);
       const approvedWorker = profile && isWorkerRole(profile.role)
+        && profile.hotel_organization_id === tenant.organizationId
         && profile.menu_access_approved === true
-        && (profile.menu_access_role === "chef" || profile.menu_access_role === "food_beverage_manager")
-        && membership?.role === "worker";
+        && (profile.menu_access_role === "chef" || profile.menu_access_role === "food_beverage_manager");
       const canManage = Boolean(manager || approvedWorker);
       setIsManager(Boolean(manager));
       setAuthorized(canManage);
@@ -115,6 +115,7 @@ const MenuManagementPage = () => {
           .from("user_profiles")
           .select("user_id, email, first_name, last_name, service_type, menu_access_role")
           .in("role", WORKER_ROLE_VALUES)
+          .eq("hotel_organization_id", tenant.organizationId)
           .eq("menu_access_approved", false)
           .in("menu_access_role", ["chef", "food_beverage_manager"])
           .order("created_at", { ascending: true });
@@ -361,10 +362,7 @@ const MenuManagementPage = () => {
   };
 
   const approveWorker = async (userId: string) => {
-    const { error } = await supabase.rpc("approve_menu_access", {
-      target_user_id: userId,
-      target_organization_id: tenant.organizationId,
-    });
+    const { error } = await supabase.rpc("approve_menu_access", { target_user_id: userId });
 
     if (!error) {
       setPendingWorkers((current) => current.filter((worker) => worker.user_id !== userId));
