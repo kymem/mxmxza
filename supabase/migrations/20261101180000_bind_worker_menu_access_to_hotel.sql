@@ -3,16 +3,6 @@ begin;
 alter table public.user_profiles
   add column if not exists hotel_organization_id uuid references public.books_organizations(id) on delete set null;
 
-update public.user_profiles profile
-   set hotel_organization_id = signup_hotel.organization_id
-  from auth.users account
-  join public.hotel_tenant_settings signup_hotel
-    on signup_hotel.organization_id::text = account.raw_user_meta_data ->> 'loyalty_organization_id'
-   and signup_hotel.is_active
- where account.id = profile.user_id
-   and profile.role = 'worker'
-   and profile.hotel_organization_id is null;
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -22,20 +12,12 @@ set search_path = public
 as $$
 DECLARE
   requested_role text;
-  signup_hotel_id uuid;
 BEGIN
   requested_role := CASE
     WHEN new.raw_user_meta_data ->> 'role' IN ('guest', 'manager', 'worker')
     THEN new.raw_user_meta_data ->> 'role'
     ELSE 'guest'
   END;
-
-  IF requested_role = 'worker' THEN
-    SELECT settings.organization_id INTO signup_hotel_id
-      FROM public.hotel_tenant_settings settings
-     WHERE settings.organization_id::text = new.raw_user_meta_data ->> 'loyalty_organization_id'
-       AND settings.is_active;
-  END IF;
 
   INSERT INTO public.user_profiles (
     user_id,
@@ -47,8 +29,7 @@ BEGIN
     service_type,
     service_category,
     menu_access_role,
-    menu_access_approved,
-    hotel_organization_id
+    menu_access_approved
   )
   VALUES (
     new.id,
@@ -60,8 +41,7 @@ BEGIN
     NULLIF(new.raw_user_meta_data ->> 'service_type', ''),
     NULLIF(new.raw_user_meta_data ->> 'service_category', ''),
     COALESCE(new.raw_user_meta_data ->> 'menu_access_role', 'none'),
-    false,
-    signup_hotel_id
+    false
   )
   ON CONFLICT (user_id) DO UPDATE SET
     email = EXCLUDED.email,
@@ -83,8 +63,7 @@ BEGIN
     END,
     service_type = COALESCE(public.user_profiles.service_type, EXCLUDED.service_type),
     service_category = COALESCE(public.user_profiles.service_category, EXCLUDED.service_category),
-    menu_access_role = COALESCE(public.user_profiles.menu_access_role, EXCLUDED.menu_access_role),
-    hotel_organization_id = COALESCE(public.user_profiles.hotel_organization_id, EXCLUDED.hotel_organization_id);
+    menu_access_role = COALESCE(public.user_profiles.menu_access_role, EXCLUDED.menu_access_role);
 
   RETURN new;
 END;
@@ -136,6 +115,26 @@ as $$
        and profile.menu_access_role in ('chef', 'food_beverage_manager')
   );
 $$;
+
+create or replace function public.bind_worker_to_hotel(target_organization_id uuid, target_user_id uuid)
+returns void
+language plpgsql
+security definer
+volatile
+set search_path = public
+as $$
+begin
+  update public.user_profiles
+     set hotel_organization_id = target_organization_id,
+         updated_at = now()
+   where user_id = target_user_id
+     and role = 'worker'
+     and hotel_organization_id is null;
+end;
+$$;
+
+revoke all on function public.bind_worker_to_hotel(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.bind_worker_to_hotel(uuid, uuid) to service_role;
 
 drop function if exists public.approve_menu_access(uuid, uuid);
 

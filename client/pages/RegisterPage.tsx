@@ -23,12 +23,10 @@ import { Textarea } from "../components/ui/textarea";
 import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
 import { supabase } from "../lib/supabase";
-import { useHotelTenant } from "../lib/hotelTenant";
 import { taxEntityTypes } from "../lib/booksTaxSummary";
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { tenant } = useHotelTenant();
   const [searchParams] = useSearchParams();
   const requestedReturnTo = searchParams.get("returnTo");
   const returnTo = requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/profile";
@@ -187,7 +185,6 @@ const RegisterPage: React.FC = () => {
             service_category: formData.serviceCategory || null,
             menu_access_role: formData.menuAccessRole || null,
             referral_code: formData.referralCode.trim().toUpperCase() || null,
-            loyalty_organization_id: tenant?.organizationId || null,
           },
         },
       });
@@ -234,6 +231,17 @@ const RegisterPage: React.FC = () => {
 
         if (profileError) {
           throw new Error(`Account created, but profile setup failed: ${profileError.message}`);
+        }
+
+        if (formData.role === "worker") {
+          const bindingResponse = await fetch("/api/hotel-worker-binding", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${authData.session.access_token}` },
+          });
+          if (!bindingResponse.ok) {
+            const payload = await bindingResponse.json().catch(() => null) as { error?: string } | null;
+            throw new Error(payload?.error || "Account created, but hotel link could not be saved");
+          }
         }
       }
 

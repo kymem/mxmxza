@@ -49,6 +49,7 @@ import {
   respondHotelEventProposal,
   reviewHotelEventProposal,
   submitHotelEventProposal,
+  bindWorkerToHotelTenant,
 } from "./routes/hotelTenant.js";
 
 export function createServer() {
@@ -79,6 +80,7 @@ export function createServer() {
   app.get("/api/hotel-menu-video/:attachmentId", getPublicMenuVideo);
   app.post("/api/hotel-menu-availability", requestHotelMenuAvailability);
   app.get("/api/hotel-events", getPublicSpecialEvents);
+  app.post("/api/hotel-worker-binding", bindWorkerToHotelTenant);
   app.post("/api/hotel-event-proposals/submit", submitHotelEventProposal);
   app.post("/api/hotel-event-proposals/review", reviewHotelEventProposal);
   app.post("/api/hotel-event-proposals/respond", respondHotelEventProposal);

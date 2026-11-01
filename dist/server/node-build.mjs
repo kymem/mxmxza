@@ -103,6 +103,19 @@ const getAuthenticatedUserId$2 = async (authorization) => {
   return user.id;
 };
 const isUuid$1 = (value) => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const bindWorkerToHotelTenant = async (request, response) => {
+  try {
+    const tenant = await resolveRequestHotelTenant(request);
+    const userId = await getAuthenticatedUserId$2(request.headers.authorization);
+    await callTenantRpc("bind_worker_to_hotel", {
+      target_organization_id: tenant.organizationId,
+      target_user_id: userId
+    });
+    response.json({ organizationId: tenant.organizationId });
+  } catch (error) {
+    response.status(400).json({ error: error instanceof Error ? error.message : "Unable to link worker to hotel" });
+  }
+};
 const submitHotelEventProposal = async (request, response) => {
   try {
     const tenant = await resolveRequestHotelTenant(request);
@@ -1955,6 +1968,7 @@ function createServer() {
   app2.get("/api/hotel-menu-video/:attachmentId", getPublicMenuVideo);
   app2.post("/api/hotel-menu-availability", requestHotelMenuAvailability);
   app2.get("/api/hotel-events", getPublicSpecialEvents);
+  app2.post("/api/hotel-worker-binding", bindWorkerToHotelTenant);
   app2.post("/api/hotel-event-proposals/submit", submitHotelEventProposal);
   app2.post("/api/hotel-event-proposals/review", reviewHotelEventProposal);
   app2.post("/api/hotel-event-proposals/respond", respondHotelEventProposal);

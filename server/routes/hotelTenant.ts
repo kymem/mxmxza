@@ -170,6 +170,20 @@ const getAuthenticatedUserId = async (authorization: string | undefined) => {
 const isUuid = (value: unknown): value is string => typeof value === "string"
   && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
+export const bindWorkerToHotelTenant: RequestHandler = async (request, response) => {
+  try {
+    const tenant = await resolveRequestHotelTenant(request);
+    const userId = await getAuthenticatedUserId(request.headers.authorization);
+    await callTenantRpc("bind_worker_to_hotel", {
+      target_organization_id: tenant.organizationId,
+      target_user_id: userId,
+    });
+    response.json({ organizationId: tenant.organizationId });
+  } catch (error) {
+    response.status(400).json({ error: error instanceof Error ? error.message : "Unable to link worker to hotel" });
+  }
+};
+
 export const submitHotelEventProposal: RequestHandler = async (request, response) => {
   try {
     const tenant = await resolveRequestHotelTenant(request);
