@@ -138,8 +138,15 @@ const BooksPage = () => {
         }
         const membership = await supabase.from("books_memberships").select("organization_id").eq("organization_id", selectedOrganizationId).eq("user_id", userData.user.id).maybeSingle();
         if (membership.error) throw membership.error;
-        if (!membership.data) throw new Error("You do not have access to this hotel’s Books workspace.");
-        orgId = selectedOrganizationId;
+        if (membership.data) {
+          orgId = selectedOrganizationId;
+        } else if (requestedOrganizationId) {
+          throw new Error("You do not have access to this hotel’s Books workspace.");
+        } else {
+          const result = await supabase.rpc("get_or_create_personal_books_organization");
+          orgId = result.data;
+          orgError = result.error;
+        }
       } else {
         const result = await supabase.rpc("get_or_create_books_organization");
         orgId = result.data;
